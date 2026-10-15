@@ -1,0 +1,23 @@
+CREATE TABLE "products" (
+	"id" uuid PRIMARY KEY NOT NULL,
+	"title" varchar(255) NOT NULL,
+	"description" text DEFAULT '' NOT NULL,
+	"media" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"tags" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"status" varchar(20) DEFAULT 'draft' NOT NULL,
+	"category" jsonb,
+	"unit_price_amount" integer NOT NULL,
+	"unit_price_currency" varchar(3) DEFAULT 'USD' NOT NULL,
+	"base_price_amount" integer,
+	"base_price_currency" varchar(3),
+	"compare_at_price_amount" integer,
+	"compare_at_price_currency" varchar(3),
+	"sku" varchar(255) NOT NULL,
+	"inventory_quantity" integer DEFAULT 0 NOT NULL,
+	"track_quantity" boolean DEFAULT true NOT NULL,
+	"variants" jsonb DEFAULT '[]'::jsonb NOT NULL,
+	"version" integer DEFAULT 1 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "products_sku_unique" UNIQUE("sku")
+);

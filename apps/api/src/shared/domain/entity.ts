@@ -1,6 +1,6 @@
 // all the other entity of our codebase are goind to go ahead  extend to this entity. Here we have some properly which i want them to inherit from this entity.
 
-import { UniqueId } from "./value-objects/unique-id.vo.js";
+import { UniqueId } from './value-objects/unique-id.vo.js';
 
 export abstract class Entity<T extends UniqueId = UniqueId> {
   constructor(protected readonly id: T) {}

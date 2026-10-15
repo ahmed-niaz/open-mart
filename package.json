@@ -10,7 +10,11 @@
     "build": "pnpm -r run build",
     "build:api": "pnpm --filter api run build",
     "build:web": "pnpm --filter web run build",
-    "lint": "pnpm -r run lint"
+    "lint": "pnpm -r run lint",
+    "db:generate": "pnpm --filter api db:generate",
+    "db:push": "pnpm --filter api db:push",
+    "db:migrate": "pnpm --filter api db:migrate",
+    "db:studio": "pnpm --filter api db:studio"
   },
   "keywords": [],
   "author": "",

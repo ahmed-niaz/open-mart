@@ -2,5 +2,6 @@ packages:
   - 'apps/*'
 
 allowBuilds:
+  esbuild: set this to true or false
   sharp: false
   unrs-resolver: true

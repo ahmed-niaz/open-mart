@@ -9,3 +9,6 @@ out
 .env*.local
 .DS_Store
 
+# Architecture rules
+DDD_CLEAN_ARCHITECTURE_RULES.md
+

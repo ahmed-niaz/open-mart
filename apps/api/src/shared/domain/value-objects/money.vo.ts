@@ -1,5 +1,4 @@
-import { DomainException } from "../exceptions/domain.exception.js";
-
+import { DomainException } from '../exceptions/domain.exception.js';
 
 export class Money {
   // do not expose entarnal properties - make private
