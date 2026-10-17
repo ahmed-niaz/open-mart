@@ -7,6 +7,7 @@ import { SKU } from '../value-objects/sku.vo.js';
 export enum ProductStatus {
   ACTIVE = 'active',
   DRAFT = 'draft',
+  ARCHIVED = 'archived',
 }
 
 export interface ProductMedia {
@@ -260,7 +261,24 @@ export class Product extends AggregateRoot {
     this.touch();
   }
 
+  archive(): void {
+    if (this._status === ProductStatus.ARCHIVED) return;
+    this._status = ProductStatus.ARCHIVED;
+    this.touch();
+  }
+
+  restore(): void {
+    if (this._status !== ProductStatus.ARCHIVED) return;
+    this._status = ProductStatus.DRAFT;
+    this.touch();
+  }
+
   update(props: UpdateProductProps): void {
+    if (this._status === ProductStatus.ARCHIVED && props.status === undefined) {
+      throw new DomainException(
+        'Cannot update an archived product. Restore it first.',
+      );
+    }
     if (props.title !== undefined) {
       Product.validateTitle(props.title);
       this._title = props.title.trim();

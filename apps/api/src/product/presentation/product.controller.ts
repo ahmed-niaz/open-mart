@@ -24,10 +24,13 @@ import { DeleteProductCommand } from '../application/use-cases/delete-product/de
 import { DeleteProductMediaCommand } from '../application/use-cases/delete-product-media/delete-product-media.command.js';
 import { UpdateProductCommand } from '../application/use-cases/update-product/update-product.command.js';
 import { UpdateProductStatusCommand } from '../application/use-cases/update-product-status/update-product-status.command.js';
+import { ArchiveProductCommand } from '../application/use-cases/archive-product/archive-product.command.js';
+import { RestoreProductCommand } from '../application/use-cases/restore-product/restore-product.command.js';
 import { DeleteProductMediaDto } from './dto/delete-product-media.dto.js';
 import { ProductResponseDto } from './dto/product-response.dto.js';
 import { ListProductQuery } from '../application/queries/list-product/list-product.query.js';
 import { GetProductByIdQuery } from '../application/queries/get-product-by-id/get-product-by-id.query.js';
+import { GetProductBySkuQuery } from '../application/queries/get-product-by-sku/get-product-by-sku.query.js';
 import { ProductStatus } from '../domain/entities/product.entity.js';
 import { ListProductQueryDto } from './dto/list-product-query.dto.js';
 import { PaginatedResult } from '../../shared/application/pagination/paginated-result.js';
@@ -134,6 +137,13 @@ export class ProductController {
     );
   }
 
+  @Get('sku/:sku')
+  async findBySku(@Param('sku') sku: string): Promise<ProductResponseDto> {
+    return this.queryBus.execute<GetProductBySkuQuery, ProductResponseDto>(
+      new GetProductBySkuQuery(sku),
+    );
+  }
+
   @Get(':id')
   async findById(
     @Param('id', ParseUUIDPipe) id: string,
@@ -162,6 +172,44 @@ export class ProductController {
       message: `Product status updated to '${dto.status}' successfully`,
       id,
       status: dto.status,
+    };
+  }
+
+  @Patch(':id/archive')
+  async archive(@Param('id', ParseUUIDPipe) id: string): Promise<{
+    success: boolean;
+    message: string;
+    id: string;
+    status: ProductStatus;
+  }> {
+    await this.commandBus.execute<ArchiveProductCommand, void>(
+      new ArchiveProductCommand(id),
+    );
+
+    return {
+      success: true,
+      message: 'Product archived successfully',
+      id,
+      status: ProductStatus.ARCHIVED,
+    };
+  }
+
+  @Patch(':id/restore')
+  async restore(@Param('id', ParseUUIDPipe) id: string): Promise<{
+    success: boolean;
+    message: string;
+    id: string;
+    status: ProductStatus;
+  }> {
+    await this.commandBus.execute<RestoreProductCommand, void>(
+      new RestoreProductCommand(id),
+    );
+
+    return {
+      success: true,
+      message: 'Product restored to draft status successfully',
+      id,
+      status: ProductStatus.DRAFT,
     };
   }
 

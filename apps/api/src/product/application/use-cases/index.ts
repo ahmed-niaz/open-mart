@@ -3,6 +3,8 @@ import { DeleteProductHandler } from './delete-product/delete-product.handler.js
 import { DeleteProductMediaHandler } from './delete-product-media/delete-product-media.handler.js';
 import { UpdateProductHandler } from './update-product/update-product.handler.js';
 import { UpdateProductStatusHandler } from './update-product-status/update-product-status.handler.js';
+import { ArchiveProductHandler } from './archive-product/archive-product.handler.js';
+import { RestoreProductHandler } from './restore-product/restore-product.handler.js';
 
 export const ProductCommandHandlers = [
   CreateProductHandler,
@@ -10,4 +12,6 @@ export const ProductCommandHandlers = [
   DeleteProductMediaHandler,
   UpdateProductHandler,
   UpdateProductStatusHandler,
+  ArchiveProductHandler,
+  RestoreProductHandler,
 ];
