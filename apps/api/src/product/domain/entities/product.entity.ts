@@ -385,7 +385,13 @@ export class Product extends AggregateRoot {
   }
 
   removeMedia(url: string): void {
+    const initialCount = this._media.length;
     this._media = this._media.filter((m) => m.url !== url);
+    if (this._media.length === initialCount) {
+      throw new DomainException(
+        `Media asset '${url}' does not exist on this product.`,
+      );
+    }
     this.touch();
   }
 

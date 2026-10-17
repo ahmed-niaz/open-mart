@@ -21,8 +21,10 @@ import { UpdateProductDto } from './dto/update-product.dto.js';
 import { UpdateProductStatusDto } from './dto/update-product-status.dto.js';
 import { CreateProductCommand } from '../application/use-cases/create-product/create-product.command.js';
 import { DeleteProductCommand } from '../application/use-cases/delete-product/delete-product.command.js';
+import { DeleteProductMediaCommand } from '../application/use-cases/delete-product-media/delete-product-media.command.js';
 import { UpdateProductCommand } from '../application/use-cases/update-product/update-product.command.js';
 import { UpdateProductStatusCommand } from '../application/use-cases/update-product-status/update-product-status.command.js';
+import { DeleteProductMediaDto } from './dto/delete-product-media.dto.js';
 import { ProductResponseDto } from './dto/product-response.dto.js';
 import { ListProductQuery } from '../application/queries/list-product/list-product.query.js';
 import { GetProductByIdQuery } from '../application/queries/get-product-by-id/get-product-by-id.query.js';
@@ -237,6 +239,23 @@ export class ProductController {
     @UploadedFiles() files?: Express.Multer.File[],
   ): Promise<{ success: boolean; message: string; id: string }> {
     return this.update(id, dto, files);
+  }
+
+  @Delete(':id/media')
+  async deleteMedia(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DeleteProductMediaDto,
+  ): Promise<{ success: boolean; message: string; id: string; url: string }> {
+    await this.commandBus.execute<DeleteProductMediaCommand, void>(
+      new DeleteProductMediaCommand(id, dto.url),
+    );
+
+    return {
+      success: true,
+      message: 'Product media deleted successfully',
+      id,
+      url: dto.url,
+    };
   }
 
   @Delete(':id')
