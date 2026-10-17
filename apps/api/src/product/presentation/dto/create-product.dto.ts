@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -70,11 +70,17 @@ export class ProductVariantDto {
   sku?: string;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @Min(0)
   unitPrice?: number;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : 0,
+  )
   @IsNumber()
   @Min(0)
   inventoryQuantity?: number;
@@ -91,12 +97,37 @@ export class CreateProductDto {
   description?: string;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return [];
+      }
+    }
+    return value;
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProductMediaDto)
   media?: ProductMediaDto[];
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return value
+          .split(',')
+          .map((t: string) => t.trim())
+          .filter(Boolean);
+      }
+    }
+    return value;
+  })
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
@@ -106,10 +137,24 @@ export class CreateProductDto {
   status?: ProductStatus = ProductStatus.DRAFT;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (typeof parsed === 'object' && parsed !== null) return parsed;
+      } catch {
+        return { name: value };
+      }
+    }
+    return value;
+  })
   @ValidateNested()
   @Type(() => ProductCategoryDto)
   category?: ProductCategoryDto;
 
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : value,
+  )
   @IsNumber()
   @Min(0)
   unitPrice: number;
@@ -121,11 +166,17 @@ export class CreateProductDto {
   currency?: string = 'USD';
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @Min(0)
   basePrice?: number;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   @Min(0)
   compareAtPrice?: number;
@@ -139,15 +190,32 @@ export class CreateProductDto {
   sku: string;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value !== undefined && value !== '' ? Number(value) : 0,
+  )
   @IsNumber()
   @Min(0)
   inventoryQuantity?: number = 0;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value === 'true' : Boolean(value),
+  )
   @IsBoolean()
   trackQuantity?: boolean = true;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return [];
+      }
+    }
+    return value;
+  })
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProductVariantDto)

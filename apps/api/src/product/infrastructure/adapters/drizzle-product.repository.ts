@@ -156,12 +156,19 @@ export class DrizzleProductRepository implements ProductRepositoryPort {
     return rows.map((row) => DrizzleProductRepository.toDomain(row));
   }
 
-  // 6. DELETE (Zero hard-delete standard: sets status to archived or performs deletion)
+  // 6. DELETE (Permanently removes record from database)
   async delete(id: ProductId): Promise<void> {
-    await this.db
+    const deleted = await this.db
       .delete(productsSchema)
       .where(eq(productsSchema.id, id.getValue()))
-      .execute();
+      .returning({ id: productsSchema.id });
+
+    if (deleted.length === 0) {
+      throw new ApplicationException(
+        `Product with id '${id.getValue()}' not found.`,
+        ApplicationExceptionCode.NOT_FOUND,
+      );
+    }
   }
 
   // --- Mappers ---

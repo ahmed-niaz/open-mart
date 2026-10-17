@@ -1,5 +1,8 @@
 import { Product } from '../../domain/entities/product.entity.js';
-import type { ProductSelectRow } from '../../../../shared/infrastructure/database/postgres/schema/product.schema.js';
+import type {
+  ProductSelectRow,
+  ProductVariantPersistence,
+} from '../../../shared/infrastructure/database/postgres/schema/product.schema.js';
 
 export class ProductVariantResponseDto {
   id: string;
@@ -53,7 +56,9 @@ export class ProductResponseDto {
     dto.sku = row.sku;
     dto.inventoryQuantity = row.inventoryQuantity;
     dto.trackQuantity = row.trackQuantity;
-    dto.variants = (row.variants ?? []).map((v) => ({
+    dto.variants = (
+      (row.variants as ProductVariantPersistence[] | null | undefined) ?? []
+    ).map((v: ProductVariantPersistence) => ({
       id: v.id,
       name: v.name,
       type: v.type,

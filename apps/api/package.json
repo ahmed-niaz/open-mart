@@ -27,6 +27,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1152.0",
     "@nestjs/common": "^12.0.1",
     "@nestjs/config": "^12.0.1",
     "@nestjs/core": "^12.0.1",
@@ -36,6 +37,7 @@
     "class-validator": "^0.15.1",
     "dotenv": "^18.0.8",
     "drizzle-orm": "^0.45.4",
+    "multer": "^2.4.0",
     "postgres": "^3.4.9",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
@@ -46,6 +48,7 @@
     "@nestjs/schematics": "^12.0.0",
     "@nestjs/testing": "^12.0.1",
     "@types/express": "^5.0.0",
+    "@types/multer": "^2.3.0",
     "@types/node": "^24.0.0",
     "@types/supertest": "^7.0.0",
     "@vitest/coverage-v8": "^4.1.2",

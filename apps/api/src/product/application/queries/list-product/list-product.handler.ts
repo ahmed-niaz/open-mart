@@ -7,7 +7,7 @@ import {
 } from '../../../../shared/infrastructure/database/postgres/drizzle.provider.js';
 import { productsTable } from '../../../../shared/infrastructure/database/postgres/schema/product.schema.js';
 import { ProductResponseDto } from '../../../presentation/dto/product-response.dto.js';
-import { ListProductQuery } from '../list-product.query.js';
+import { ListProductQuery } from './list-product.query.js';
 
 @QueryHandler(ListProductQuery)
 export class ListProductHandler implements IQueryHandler<
