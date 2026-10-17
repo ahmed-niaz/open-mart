@@ -1,0 +1,25 @@
+# Dependencies & workspace builds
+node_modules
+**/node_modules
+dist
+**/dist
+.next
+**/.next
+.turbo
+**/.turbo
+out
+**/out
+coverage
+**/coverage
+
+# Database & generated artifacts
+drizzle
+**/drizzle
+.system_generated
+**/.system_generated
+*.log
+
+# Lockfiles
+pnpm-lock.yaml
+package-lock.json
+

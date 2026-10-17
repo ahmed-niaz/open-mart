@@ -1,8 +1,9 @@
 {
   "name": "OPEN-MART",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Single-Vendor E-Commerce Platform",
+  "private": true,
+  "type": "module",
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "dev:api": "pnpm --filter api run dev",
@@ -10,7 +11,12 @@
     "build": "pnpm -r run build",
     "build:api": "pnpm --filter api run build",
     "build:web": "pnpm --filter web run build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:api": "pnpm --filter api run format",
     "lint": "pnpm -r run lint",
+    "lint:api": "pnpm --filter api run lint",
+    "lint:web": "pnpm --filter web run lint",
     "db:generate": "pnpm --filter api db:generate",
     "db:push": "pnpm --filter api db:push",
     "db:migrate": "pnpm --filter api db:migrate",
@@ -19,6 +25,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "packageManager": "pnpm@12.11.2",
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
@@ -26,6 +33,7 @@
       "onFail": "download"
     }
   },
-  "packageManager": "pnpm@12.11.2",
-  "type": "module"
+  "devDependencies": {
+    "prettier": "^3.9.10"
+  }
 }

@@ -68,6 +68,21 @@ export interface CreateProductInput {
   variants?: ProductVariant[];
 }
 
+export interface UpdateProductProps {
+  title?: string;
+  description?: string;
+  unitPrice?: Money;
+  basePrice?: Money;
+  compareAtPrice?: Money;
+  inventoryQuantity?: number;
+  trackQuantity?: boolean;
+  category?: ProductCategory;
+  tags?: string[];
+  status?: ProductStatus;
+  variants?: ProductVariant[];
+  media?: ProductMedia[];
+}
+
 export class Product extends AggregateRoot {
   private _id: ProductId;
   private _title: string;
@@ -236,6 +251,89 @@ export class Product extends AggregateRoot {
   draft(): void {
     if (this._status === ProductStatus.DRAFT) return;
     this._status = ProductStatus.DRAFT;
+    this.touch();
+  }
+
+  changeStatus(status: ProductStatus): void {
+    if (this._status === status) return;
+    this._status = status;
+    this.touch();
+  }
+
+  update(props: UpdateProductProps): void {
+    if (props.title !== undefined) {
+      Product.validateTitle(props.title);
+      this._title = props.title.trim();
+    }
+
+    if (props.description !== undefined) {
+      this._description = props.description;
+    }
+
+    if (props.category !== undefined) {
+      this._category = props.category;
+    }
+
+    const newUnitPrice = props.unitPrice ?? this._unitPrice;
+    const newCompareAt =
+      props.compareAtPrice !== undefined
+        ? props.compareAtPrice
+        : this._compareAtPrice;
+    const newBasePrice =
+      props.basePrice !== undefined ? props.basePrice : this._basePrice;
+
+    if (
+      props.unitPrice !== undefined ||
+      props.compareAtPrice !== undefined ||
+      props.basePrice !== undefined
+    ) {
+      Product.validatePricing(newUnitPrice, newCompareAt, newBasePrice);
+      this._unitPrice = newUnitPrice;
+      this._compareAtPrice = newCompareAt;
+      this._basePrice = newBasePrice;
+    }
+
+    const newTrack =
+      props.trackQuantity !== undefined
+        ? props.trackQuantity
+        : this._trackQuantity;
+    const newInventory =
+      props.inventoryQuantity !== undefined
+        ? props.inventoryQuantity
+        : this._inventoryQuantity;
+
+    if (
+      props.inventoryQuantity !== undefined ||
+      props.trackQuantity !== undefined
+    ) {
+      Product.validateInventory(newInventory, newTrack);
+      this._inventoryQuantity = newInventory;
+      this._trackQuantity = newTrack;
+    }
+
+    if (props.tags !== undefined) {
+      this._tags = props.tags;
+    }
+
+    if (props.status !== undefined) {
+      this._status = props.status;
+    }
+
+    if (props.variants !== undefined) {
+      this._variants = props.variants;
+    }
+
+    if (props.media !== undefined && props.media.length > 0) {
+      // Rule 7: Never wipe product media arrays during general metadata updates
+      const existingUrls = new Set(this._media.map((m) => m.url));
+      for (const item of props.media) {
+        if (!existingUrls.has(item.url)) {
+          this._media.push(item);
+          existingUrls.add(item.url);
+        }
+      }
+    }
+
     this.touch();
   }
 

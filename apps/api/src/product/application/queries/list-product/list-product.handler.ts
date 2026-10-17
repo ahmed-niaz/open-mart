@@ -22,12 +22,17 @@ export class ListProductHandler implements IQueryHandler<
   async execute(query: ListProductQuery): Promise<ProductResponseDto[]> {
     const conditions = [];
 
-    if (query.status !== undefined) {
-      conditions.push(eq(productsTable.status, query.status));
+    if (query.status !== undefined && query.status.trim() !== '') {
+      if (query.status.toLowerCase() !== 'all') {
+        conditions.push(eq(productsTable.status, query.status.toLowerCase()));
+      }
     } else if (query.isActive !== undefined) {
       conditions.push(
         eq(productsTable.status, query.isActive ? 'active' : 'draft'),
       );
+    } else {
+      // By default, only active products are returned in the public catalog listing
+      conditions.push(eq(productsTable.status, 'active'));
     }
 
     if (query.minPrice !== undefined) {

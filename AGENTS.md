@@ -8,6 +8,7 @@
 ## 1. Single-Vendor Context
 
 This repository is built exclusively for a **Single-Vendor E-Commerce Store and Website** (Direct-to-Consumer / Single Merchant):
+
 - **No Vendor Multi-Tenancy**: Products, inventory, orders, and payments belong directly to the store. Never introduce `vendor_id`, `merchant_id`, seller commissions, or vendor payout tables.
 - **Unified Catalog & Checkout**: Direct cart-to-order flow with centralized stock management and a single merchant payment processor.
 
@@ -67,4 +68,3 @@ Before writing or editing code in any feature module (`apps/api/src/<module_name
 - ❌ **NEVER** wipe product media arrays during general metadata updates.
 
 For full architectural templates, code snippets, and details, reference [DDD_CLEAN_ARCHITECTURE_RULES.md](./DDD_CLEAN_ARCHITECTURE_RULES.md).
-
