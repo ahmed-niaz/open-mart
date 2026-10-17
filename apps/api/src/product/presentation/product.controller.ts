@@ -27,6 +27,8 @@ import { ProductResponseDto } from './dto/product-response.dto.js';
 import { ListProductQuery } from '../application/queries/list-product/list-product.query.js';
 import { GetProductByIdQuery } from '../application/queries/get-product-by-id/get-product-by-id.query.js';
 import { ProductStatus } from '../domain/entities/product.entity.js';
+import { ListProductQueryDto } from './dto/list-product-query.dto.js';
+import { PaginatedResult } from '../../shared/application/pagination/paginated-result.js';
 import {
   STORAGE_SERVICE,
   type StoragePort,
@@ -110,20 +112,23 @@ export class ProductController {
 
   @Get('all')
   async findAll(
-    @Query('isActive') isActive?: string,
-    @Query('minPrice') minPrice?: string,
-    @Query('maxPrice') maxPrice?: string,
-    @Query('status') status?: string,
-    @Query('category') category?: string,
-  ): Promise<ProductResponseDto[]> {
-    return this.queryBus.execute<ListProductQuery, ProductResponseDto[]>(
-      new ListProductQuery(
-        isActive !== undefined ? isActive === 'true' : undefined,
-        minPrice !== undefined ? parseFloat(minPrice) : undefined,
-        maxPrice !== undefined ? parseFloat(maxPrice) : undefined,
-        status,
-        category,
-      ),
+    @Query() queryDto: ListProductQueryDto,
+  ): Promise<PaginatedResult<ProductResponseDto>> {
+    return this.queryBus.execute<
+      ListProductQuery,
+      PaginatedResult<ProductResponseDto>
+    >(
+      new ListProductQuery({
+        page: queryDto.page,
+        limit: queryDto.limit,
+        offset: queryDto.offset,
+        search: queryDto.search?.trim(),
+        isActive: queryDto.isActive,
+        minPrice: queryDto.minPrice,
+        maxPrice: queryDto.maxPrice,
+        status: queryDto.status?.trim(),
+        category: queryDto.category?.trim(),
+      }),
     );
   }
 
