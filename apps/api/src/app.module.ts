@@ -5,6 +5,8 @@ import { DrizzleModule } from './shared/infrastructure/database/postgres/drizzle
 import { StorageModule } from './shared/infrastructure/storage/storage.module.js';
 import { ProductModule } from './product/product.module.js';
 import { CategoryModule } from './category/category.module.js';
+import { NotificationModule } from './notification/notification.module.js';
+import { CustomerModule } from './customer/customer.module.js';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { CategoryModule } from './category/category.module.js';
     StorageModule,
     ProductModule,
     CategoryModule,
+    NotificationModule,
+    CustomerModule,
   ],
   controllers: [],
   providers: [],

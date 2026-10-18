@@ -1,0 +1,30 @@
+import { Module } from '@nestjs/common';
+import { CqrsModule } from '@nestjs/cqrs';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+
+import { NOTIFICATION_PORT } from './application/ports/notification.port.js';
+import { NodemailerNotificationAdapter } from './infrastructure/adapters/nodemailer-notification.adapter.js';
+import { ConsoleNotificationAdapter } from './infrastructure/adapters/console-notification.adapter.js';
+import { CustomerRegisteredEventHandler } from './application/event-handlers/customer-registered.event-handler.js';
+
+@Module({
+  imports: [CqrsModule, ConfigModule],
+  providers: [
+    {
+      provide: NOTIFICATION_PORT,
+      useFactory: (configService: ConfigService) => {
+        const smtpUser = configService.get<string>('SMTP_USER');
+        const smtpPass = configService.get<string>('SMTP_PASS');
+
+        if (smtpUser && smtpPass) {
+          return new NodemailerNotificationAdapter(configService);
+        }
+        return new ConsoleNotificationAdapter();
+      },
+      inject: [ConfigService],
+    },
+    CustomerRegisteredEventHandler,
+  ],
+  exports: [NOTIFICATION_PORT],
+})
+export class NotificationModule {}
