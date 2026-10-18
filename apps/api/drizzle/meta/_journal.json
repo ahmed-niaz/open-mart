@@ -15,6 +15,13 @@
       "when": 1792313392878,
       "tag": "0001_majestic_rockslide",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792315519050,
+      "tag": "0002_last_leech",
+      "breakpoints": true
     }
   ]
 }

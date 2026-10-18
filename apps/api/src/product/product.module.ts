@@ -6,6 +6,9 @@ import { DrizzleProductRepository } from './infrastructure/adapters/drizzle-prod
 import { ProductCommandHandlers } from './application/use-cases/index.js';
 import { ProductQueryHandlers } from './application/queries/index.js';
 
+import { CATEGORY_VERIFICATION_PORT } from './application/ports/category-verification.port.js';
+import { CategoryVerificationAdapter } from './infrastructure/adapters/category-verification.adapter.js';
+
 @Module({
   imports: [CqrsModule],
   controllers: [ProductController],
@@ -13,6 +16,10 @@ import { ProductQueryHandlers } from './application/queries/index.js';
     {
       provide: PRODUCT_REPOSITORY,
       useClass: DrizzleProductRepository,
+    },
+    {
+      provide: CATEGORY_VERIFICATION_PORT,
+      useClass: CategoryVerificationAdapter,
     },
     ...ProductCommandHandlers,
     ...ProductQueryHandlers,

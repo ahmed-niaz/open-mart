@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import { UpdateProductCommand } from './update-product.command.js';
 import { PRODUCT_REPOSITORY } from '../../ports/product.repository.js';
 import type { ProductRepositoryPort } from '../../ports/product.repository.js';
+import { CATEGORY_VERIFICATION_PORT } from '../../ports/category-verification.port.js';
+import type { CategoryVerificationPort } from '../../ports/category-verification.port.js';
 import { ProductVariant } from '../../../domain/entities/product.entity.js';
 import { ProductId } from '../../../domain/value-objects/product-id.vo.js';
 import { SKU } from '../../../domain/value-objects/sku.vo.js';
@@ -21,6 +23,8 @@ export class UpdateProductHandler implements ICommandHandler<
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: ProductRepositoryPort,
+    @Inject(CATEGORY_VERIFICATION_PORT)
+    private readonly categoryVerification: CategoryVerificationPort,
   ) {}
 
   async execute(command: UpdateProductCommand): Promise<void> {
@@ -50,10 +54,23 @@ export class UpdateProductHandler implements ICommandHandler<
       }
     }
 
-    // 2. Resolve currency (use existing currency if not explicitly provided)
+    // 2. Validate category if changing categoryId
+    if (command.categoryId !== undefined && command.categoryId !== null) {
+      const isValid = await this.categoryVerification.isCategoryValid(
+        command.categoryId,
+      );
+      if (!isValid) {
+        throw new ApplicationException(
+          `Category with id '${command.categoryId}' was not found or is inactive.`,
+          ApplicationExceptionCode.NOT_FOUND,
+        );
+      }
+    }
+
+    // 3. Resolve currency (use existing currency if not explicitly provided)
     const currency = command.currency || product.unitPrice.getCurrency();
 
-    // 3. Construct Money Value Objects
+    // 4. Construct Money Value Objects
     const unitPrice =
       command.unitPrice !== undefined
         ? Money.create(command.unitPrice, currency)
@@ -69,7 +86,7 @@ export class UpdateProductHandler implements ICommandHandler<
         ? Money.create(command.compareAtPrice, currency)
         : undefined;
 
-    // 4. Map Variants if provided
+    // 5. Map Variants if provided
     const variants: ProductVariant[] | undefined =
       command.variants !== undefined
         ? command.variants.map((v) => ({
@@ -87,10 +104,11 @@ export class UpdateProductHandler implements ICommandHandler<
           }))
         : undefined;
 
-    // 5. Mutate Aggregate Root (Enforces Domain Invariants)
+    // 6. Mutate Aggregate Root (Enforces Domain Invariants)
     product.update({
       title: command.title,
       description: command.description,
+      categoryId: command.categoryId,
       category: command.category,
       unitPrice,
       basePrice,

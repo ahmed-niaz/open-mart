@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
   Matches,
   MaxLength,
   Min,
@@ -135,6 +136,10 @@ export class CreateProductDto {
   @IsOptional()
   @IsEnum(ProductStatus)
   status?: ProductStatus = ProductStatus.DRAFT;
+
+  @IsOptional()
+  @IsUUID('4', { message: 'categoryId must be a valid UUID' })
+  categoryId?: string;
 
   @IsOptional()
   @Transform(({ value }) => {

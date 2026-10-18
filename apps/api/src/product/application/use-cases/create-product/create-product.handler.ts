@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import { CreateProductCommand } from './create-product.command.js';
 import { PRODUCT_REPOSITORY } from '../../ports/product.repository.js';
 import type { ProductRepositoryPort } from '../../ports/product.repository.js';
+import { CATEGORY_VERIFICATION_PORT } from '../../ports/category-verification.port.js';
+import type { CategoryVerificationPort } from '../../ports/category-verification.port.js';
 import {
   Product,
   ProductVariant,
@@ -23,6 +25,8 @@ export class CreateProductHandler implements ICommandHandler<
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: ProductRepositoryPort,
+    @Inject(CATEGORY_VERIFICATION_PORT)
+    private readonly categoryVerification: CategoryVerificationPort,
   ) {}
 
   async execute(command: CreateProductCommand): Promise<string> {
@@ -47,7 +51,20 @@ export class CreateProductHandler implements ICommandHandler<
       );
     }
 
-    // 3. Construct Money Value Objects
+    // 3. Category Validation Check (via ACL Port)
+    if (command.categoryId) {
+      const isValid = await this.categoryVerification.isCategoryValid(
+        command.categoryId,
+      );
+      if (!isValid) {
+        throw new ApplicationException(
+          `Category with id '${command.categoryId}' was not found or is inactive.`,
+          ApplicationExceptionCode.NOT_FOUND,
+        );
+      }
+    }
+
+    // 4. Construct Money Value Objects
     const unitPrice = Money.create(command.unitPrice, command.currency);
     const basePrice =
       command.basePrice !== undefined
@@ -58,7 +75,7 @@ export class CreateProductHandler implements ICommandHandler<
         ? Money.create(command.compareAtPrice, command.currency)
         : undefined;
 
-    // 4. Map Variants to Domain Models
+    // 5. Map Variants to Domain Models
     const variants: ProductVariant[] = (command.variants ?? []).map((v) => ({
       id: v.id ?? randomUUID(),
       name: v.name,
@@ -73,13 +90,14 @@ export class CreateProductHandler implements ICommandHandler<
       inventoryQuantity: v.inventoryQuantity ?? 0,
     }));
 
-    // 5. Instantiate Aggregate Root (Enforces Domain Invariants)
+    // 6. Instantiate Aggregate Root (Enforces Domain Invariants)
     const product = Product.create({
       title: command.title,
       description: command.description,
       media: command.media,
       tags: command.tags,
       status: command.status,
+      categoryId: command.categoryId,
       category: command.category,
       unitPrice,
       basePrice,

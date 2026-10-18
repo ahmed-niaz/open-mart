@@ -39,6 +39,7 @@ export interface ProductProps {
   media: ProductMedia[];
   tags: string[];
   status: ProductStatus;
+  categoryId?: string | null;
   category?: ProductCategory;
   unitPrice: Money;
   basePrice?: Money;
@@ -59,6 +60,7 @@ export interface CreateProductInput {
   media?: ProductMedia[];
   tags?: string[];
   status?: ProductStatus;
+  categoryId?: string | null;
   category?: ProductCategory;
   unitPrice: Money;
   basePrice?: Money;
@@ -77,6 +79,7 @@ export interface UpdateProductProps {
   compareAtPrice?: Money;
   inventoryQuantity?: number;
   trackQuantity?: boolean;
+  categoryId?: string | null;
   category?: ProductCategory;
   tags?: string[];
   status?: ProductStatus;
@@ -91,6 +94,7 @@ export class Product extends AggregateRoot {
   private _media: ProductMedia[];
   private _tags: string[];
   private _status: ProductStatus;
+  private _categoryId?: string | null;
   private _category?: ProductCategory;
   private _unitPrice: Money;
   private _basePrice?: Money;
@@ -111,6 +115,7 @@ export class Product extends AggregateRoot {
     this._media = props.media;
     this._tags = props.tags;
     this._status = props.status;
+    this._categoryId = props.categoryId ?? null;
     this._category = props.category;
     this._unitPrice = props.unitPrice;
     this._basePrice = props.basePrice;
@@ -149,6 +154,7 @@ export class Product extends AggregateRoot {
       media: input.media ?? [],
       tags: input.tags ?? [],
       status: input.status ?? ProductStatus.DRAFT,
+      categoryId: input.categoryId ?? null,
       category: input.category,
       unitPrice: input.unitPrice,
       basePrice: input.basePrice,
@@ -191,6 +197,10 @@ export class Product extends AggregateRoot {
 
   get status(): ProductStatus {
     return this._status;
+  }
+
+  get categoryId(): string | null | undefined {
+    return this._categoryId;
   }
 
   get category(): ProductCategory | undefined {
@@ -286,6 +296,10 @@ export class Product extends AggregateRoot {
 
     if (props.description !== undefined) {
       this._description = props.description;
+    }
+
+    if (props.categoryId !== undefined) {
+      this._categoryId = props.categoryId;
     }
 
     if (props.category !== undefined) {
@@ -394,6 +408,11 @@ export class Product extends AggregateRoot {
 
   updateCategory(category: ProductCategory | undefined): void {
     this._category = category;
+    this.touch();
+  }
+
+  assignCategory(categoryId: string | null): void {
+    this._categoryId = categoryId;
     this.touch();
   }
 

@@ -6,9 +6,11 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { ProductStatus } from '../../domain/entities/product.entity.js';
@@ -68,6 +70,11 @@ export class UpdateProductDto {
   @IsOptional()
   @IsEnum(ProductStatus)
   status?: ProductStatus;
+
+  @IsOptional()
+  @ValidateIf((_, val) => val !== null)
+  @IsUUID('4', { message: 'categoryId must be a valid UUID or null' })
+  categoryId?: string | null;
 
   @IsOptional()
   @Transform(({ value }) => {

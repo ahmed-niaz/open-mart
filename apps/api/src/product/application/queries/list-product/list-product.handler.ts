@@ -1,13 +1,14 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { Inject } from '@nestjs/common';
-import { and, count, desc, eq, gte, ilike, lte, or, sql } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, lte, or } from 'drizzle-orm';
 import {
   DRIZZLE,
   type DrizzleDB,
 } from '../../../../shared/infrastructure/database/postgres/drizzle.provider.js';
 import { productsTable } from '../../../../shared/infrastructure/database/postgres/schema/product.schema.js';
+import { categoriesSchema } from '../../../../shared/infrastructure/database/postgres/schema/category.schema.js';
 import { PaginatedResult } from '../../../../shared/application/pagination/paginated-result.js';
-import { ProductResponseDto } from '../../../presentation/dto/product-response.dto.js';
+import { ProductResponseDto } from '../../dto/product-response.dto.js';
 import { ListProductQuery } from './list-product.query.js';
 
 @QueryHandler(ListProductQuery)
@@ -15,10 +16,7 @@ export class ListProductHandler implements IQueryHandler<
   ListProductQuery,
   PaginatedResult<ProductResponseDto>
 > {
-  constructor(
-    @Inject(DRIZZLE)
-    private readonly db: DrizzleDB,
-  ) {}
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
   async execute(
     query: ListProductQuery,
@@ -59,12 +57,25 @@ export class ListProductHandler implements IQueryHandler<
       conditions.push(lte(productsTable.unitPriceAmount, query.maxPrice));
     }
 
-    // 4. Category Filter in SQL
+    // 4. Category Filter (supports slug, UUID categoryId, or category name)
     if (query.category !== undefined && query.category.trim() !== '') {
-      const catLower = query.category.trim().toLowerCase();
-      conditions.push(
-        sql`lower(${productsTable.category}->>'name') = ${catLower}`,
-      );
+      const catTrimmed = query.category.trim();
+      const catLower = catTrimmed.toLowerCase();
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          catTrimmed,
+        );
+
+      const categoryFilterConditions = [
+        eq(categoriesSchema.slug, catLower),
+        ilike(categoriesSchema.name, catTrimmed),
+      ];
+
+      if (isUuid) {
+        categoryFilterConditions.push(eq(productsTable.categoryId, catTrimmed));
+      }
+
+      conditions.push(or(...categoryFilterConditions));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -73,20 +84,40 @@ export class ListProductHandler implements IQueryHandler<
     const [countResult] = await this.db
       .select({ total: count() })
       .from(productsTable)
+      .leftJoin(
+        categoriesSchema,
+        eq(productsTable.categoryId, categoriesSchema.id),
+      )
       .where(whereClause);
 
     const total = Number(countResult?.total ?? 0);
 
-    // 6. Paginated Rows Query (ordered by most recent first)
+    // 6. Paginated Rows Query with joined Category summary
     const rows = await this.db
-      .select()
+      .select({
+        product: productsTable,
+        category: {
+          id: categoriesSchema.id,
+          name: categoriesSchema.name,
+          slug: categoriesSchema.slug,
+        },
+      })
       .from(productsTable)
+      .leftJoin(
+        categoriesSchema,
+        eq(productsTable.categoryId, categoriesSchema.id),
+      )
       .where(whereClause)
       .orderBy(desc(productsTable.createdAt))
       .limit(query.limit)
       .offset(query.offset);
 
-    const dtos = rows.map((row) => ProductResponseDto.fromPersistence(row));
+    const dtos = rows.map(({ product, category }) =>
+      ProductResponseDto.fromPersistence(
+        product,
+        category?.id ? category : null,
+      ),
+    );
 
     return PaginatedResult.create(dtos, total, query.page, query.limit);
   }

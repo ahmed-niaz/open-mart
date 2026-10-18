@@ -59,6 +59,7 @@ export class DrizzleProductRepository implements ProductRepositoryPort {
         media: row.media,
         tags: row.tags,
         status: row.status,
+        categoryId: row.categoryId,
         category: row.category,
         unitPriceAmount: row.unitPriceAmount,
         unitPriceCurrency: row.unitPriceCurrency,
@@ -181,6 +182,7 @@ export class DrizzleProductRepository implements ProductRepositoryPort {
       media: product.media.map((m) => ({ ...m })),
       tags: [...product.tags],
       status: product.status,
+      categoryId: product.categoryId ?? null,
       category: product.category ? { ...product.category } : null,
       unitPriceAmount: product.unitPrice.toCents(),
       unitPriceCurrency: product.unitPrice.getCurrency(),
@@ -243,6 +245,7 @@ export class DrizzleProductRepository implements ProductRepositoryPort {
       media: (row.media ?? []).map((m): ProductMedia => ({ ...m })),
       tags: row.tags ?? [],
       status: row.status as ProductStatus,
+      categoryId: row.categoryId ?? undefined,
       category,
       unitPrice: Money.create(row.unitPriceAmount / 100, row.unitPriceCurrency),
       basePrice:

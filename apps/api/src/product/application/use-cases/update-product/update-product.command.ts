@@ -30,6 +30,7 @@ export class UpdateProductCommand implements ICommand {
     public readonly status?: ProductStatus,
     public readonly media?: ProductMedia[],
     public readonly tags?: string[],
+    public readonly categoryId?: string | null,
     public readonly category?: ProductCategory,
     public readonly variants?: UpdateProductVariantInput[],
   ) {}

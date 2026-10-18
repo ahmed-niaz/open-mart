@@ -37,6 +37,7 @@ export class CreateProductCommand implements ICommand {
     public readonly status: ProductStatus = ProductStatus.DRAFT,
     public readonly media: CreateProductMediaInput[] = [],
     public readonly tags: string[] = [],
+    public readonly categoryId?: string,
     public readonly category?: CreateProductCategoryInput,
     public readonly variants: CreateProductVariantInput[] = [],
   ) {}

@@ -7,7 +7,8 @@ import {
   type DrizzleDB,
 } from '../../../../shared/infrastructure/database/postgres/drizzle.provider.js';
 import { productsTable } from '../../../../shared/infrastructure/database/postgres/schema/product.schema.js';
-import { ProductResponseDto } from '../../../presentation/dto/product-response.dto.js';
+import { categoriesSchema } from '../../../../shared/infrastructure/database/postgres/schema/category.schema.js';
+import { ProductResponseDto } from '../../dto/product-response.dto.js';
 import {
   ApplicationException,
   ApplicationExceptionCode,
@@ -18,16 +19,24 @@ export class GetProductBySkuHandler implements IQueryHandler<
   GetProductBySkuQuery,
   ProductResponseDto
 > {
-  constructor(
-    @Inject(DRIZZLE)
-    private readonly db: DrizzleDB,
-  ) {}
+  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
   async execute(query: GetProductBySkuQuery): Promise<ProductResponseDto> {
     const cleanSku = query.sku.trim();
     const rows = await this.db
-      .select()
+      .select({
+        product: productsTable,
+        category: {
+          id: categoriesSchema.id,
+          name: categoriesSchema.name,
+          slug: categoriesSchema.slug,
+        },
+      })
       .from(productsTable)
+      .leftJoin(
+        categoriesSchema,
+        eq(productsTable.categoryId, categoriesSchema.id),
+      )
       .where(eq(productsTable.sku, cleanSku))
       .limit(1);
 
@@ -38,6 +47,10 @@ export class GetProductBySkuHandler implements IQueryHandler<
       );
     }
 
-    return ProductResponseDto.fromPersistence(rows[0]);
+    const { product, category } = rows[0];
+    return ProductResponseDto.fromPersistence(
+      product,
+      category?.id ? category : null,
+    );
   }
 }

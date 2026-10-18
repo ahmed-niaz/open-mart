@@ -17,6 +17,5 @@ import { CategoryQueryHandlers } from './application/queries/index.js';
     ...CategoryCommandHandlers,
     ...CategoryQueryHandlers,
   ],
-  exports: [CATEGORY_REPOSITORY],
 })
 export class CategoryModule {}
