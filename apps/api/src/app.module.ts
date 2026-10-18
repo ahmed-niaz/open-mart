@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DrizzleModule } from './shared/infrastructure/database/postgres/drizzle.module.js';
 import { StorageModule } from './shared/infrastructure/storage/storage.module.js';
 import { ProductModule } from './product/product.module.js';
+import { CategoryModule } from './category/category.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ProductModule } from './product/product.module.js';
     DrizzleModule,
     StorageModule,
     ProductModule,
+    CategoryModule,
   ],
   controllers: [],
   providers: [],

@@ -8,6 +8,13 @@
       "when": 1792085125194,
       "tag": "0000_loud_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792313392878,
+      "tag": "0001_majestic_rockslide",
+      "breakpoints": true
     }
   ]
 }
