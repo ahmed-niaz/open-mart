@@ -1,12 +1,15 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs';
-import { JwtService } from '@nestjs/jwt';
 
 import { GoogleAuthCommand } from './google-auth.command.js';
 import {
   CUSTOMER_REPOSITORY,
   type CustomerRepository,
 } from '../../ports/customer.repository.js';
+import {
+  TOKEN_SERVICE_PORT,
+  type TokenServicePort,
+} from '../../../../shared/application/ports/token-service.port.js';
 import { Customer } from '../../../domain/entities/customer.entity.js';
 import { Email } from '../../../domain/value-objects/email.vo.js';
 import { AuthResponseDto } from '../../dto/auth-response.dto.js';
@@ -24,7 +27,8 @@ export class GoogleAuthHandler implements ICommandHandler<
   constructor(
     @Inject(CUSTOMER_REPOSITORY)
     private readonly customerRepository: CustomerRepository,
-    private readonly jwtService: JwtService,
+    @Inject(TOKEN_SERVICE_PORT)
+    private readonly tokenService: TokenServicePort,
     private readonly eventPublisher: EventPublisher,
   ) {}
 
@@ -55,12 +59,17 @@ export class GoogleAuthHandler implements ICommandHandler<
       await this.customerRepository.save(customer);
 
       const customerDto = CustomerResponseDto.fromDomain(customer);
-      const accessToken = await this.jwtService.signAsync({
+      const tokens = await this.tokenService.generateTokenPair({
         sub: customer.id.getValue(),
         email: customer.email.value,
+        scope: 'customer',
       });
 
-      return new AuthResponseDto(customerDto, accessToken);
+      return new AuthResponseDto(
+        customerDto,
+        tokens.accessToken,
+        tokens.refreshToken,
+      );
     }
 
     // 2. Check if customer exists by email (link existing credentials account to Google)
@@ -79,12 +88,17 @@ export class GoogleAuthHandler implements ICommandHandler<
       await this.customerRepository.save(customer);
 
       const customerDto = CustomerResponseDto.fromDomain(customer);
-      const accessToken = await this.jwtService.signAsync({
+      const tokens = await this.tokenService.generateTokenPair({
         sub: customer.id.getValue(),
         email: customer.email.value,
+        scope: 'customer',
       });
 
-      return new AuthResponseDto(customerDto, accessToken);
+      return new AuthResponseDto(
+        customerDto,
+        tokens.accessToken,
+        tokens.refreshToken,
+      );
     }
 
     // 3. Register brand-new customer with Google
@@ -102,11 +116,16 @@ export class GoogleAuthHandler implements ICommandHandler<
     newCustomer.commit();
 
     const customerDto = CustomerResponseDto.fromDomain(newCustomer);
-    const accessToken = await this.jwtService.signAsync({
+    const tokens = await this.tokenService.generateTokenPair({
       sub: newCustomer.id.getValue(),
       email: newCustomer.email.value,
+      scope: 'customer',
     });
 
-    return new AuthResponseDto(customerDto, accessToken);
+    return new AuthResponseDto(
+      customerDto,
+      tokens.accessToken,
+      tokens.refreshToken,
+    );
   }
 }

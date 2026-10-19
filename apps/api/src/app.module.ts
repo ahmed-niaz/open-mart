@@ -3,6 +3,7 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigModule } from '@nestjs/config';
 import { DrizzleModule } from './shared/infrastructure/database/postgres/drizzle.module.js';
 import { StorageModule } from './shared/infrastructure/storage/storage.module.js';
+import { AuthModule } from './shared/infrastructure/auth/auth.module.js';
 import { ProductModule } from './product/product.module.js';
 import { CategoryModule } from './category/category.module.js';
 import { NotificationModule } from './notification/notification.module.js';
@@ -18,6 +19,7 @@ import { CustomerModule } from './customer/customer.module.js';
     }),
     DrizzleModule,
     StorageModule,
+    AuthModule,
     ProductModule,
     CategoryModule,
     NotificationModule,

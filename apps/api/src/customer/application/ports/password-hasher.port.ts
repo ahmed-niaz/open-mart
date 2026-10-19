@@ -1,6 +1,4 @@
-export const PASSWORD_HASHER_PORT = Symbol('PASSWORD_HASHER_PORT');
-
-export interface PasswordHasherPort {
-  hash(plainText: string): Promise<string>;
-  compare(plainText: string, hash: string): Promise<boolean>;
-}
+export {
+  PASSWORD_HASHER_PORT,
+  type PasswordHasherPort,
+} from '../../../shared/application/ports/password-hasher.port.js';

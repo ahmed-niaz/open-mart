@@ -1,6 +1,5 @@
 import { Inject } from '@nestjs/common';
 import { CommandHandler, EventPublisher, ICommandHandler } from '@nestjs/cqrs';
-import { JwtService } from '@nestjs/jwt';
 
 import { RegisterCustomerCommand } from './register-customer.command.js';
 import {
@@ -10,7 +9,11 @@ import {
 import {
   PASSWORD_HASHER_PORT,
   type PasswordHasherPort,
-} from '../../ports/password-hasher.port.js';
+} from '../../../../shared/application/ports/password-hasher.port.js';
+import {
+  TOKEN_SERVICE_PORT,
+  type TokenServicePort,
+} from '../../../../shared/application/ports/token-service.port.js';
 import { Customer } from '../../../domain/entities/customer.entity.js';
 import { Email } from '../../../domain/value-objects/email.vo.js';
 import { PasswordHash } from '../../../domain/value-objects/password-hash.vo.js';
@@ -31,7 +34,8 @@ export class RegisterCustomerHandler implements ICommandHandler<
     private readonly customerRepository: CustomerRepository,
     @Inject(PASSWORD_HASHER_PORT)
     private readonly passwordHasher: PasswordHasherPort,
-    private readonly jwtService: JwtService,
+    @Inject(TOKEN_SERVICE_PORT)
+    private readonly tokenService: TokenServicePort,
     private readonly eventPublisher: EventPublisher,
   ) {}
 
@@ -69,11 +73,16 @@ export class RegisterCustomerHandler implements ICommandHandler<
     customer.commit();
 
     const customerDto = CustomerResponseDto.fromDomain(customer);
-    const accessToken = await this.jwtService.signAsync({
+    const tokens = await this.tokenService.generateTokenPair({
       sub: customer.id.getValue(),
       email: customer.email.value,
+      scope: 'customer',
     });
 
-    return new AuthResponseDto(customerDto, accessToken);
+    return new AuthResponseDto(
+      customerDto,
+      tokens.accessToken,
+      tokens.refreshToken,
+    );
   }
 }

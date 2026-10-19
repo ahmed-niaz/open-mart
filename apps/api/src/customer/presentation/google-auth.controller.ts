@@ -22,12 +22,19 @@ import {
   ApplicationExceptionCode,
 } from '../../shared/domain/exceptions/application.exception.js';
 import type { AuthResponseDto } from '../application/dto/auth-response.dto.js';
+import {
+  TOKEN_SERVICE_PORT,
+  type TokenServicePort,
+} from '../../shared/application/ports/token-service.port.js';
+import { AuthCookieHelper } from '../../shared/infrastructure/auth/auth-cookie.helper.js';
 
 @Controller('google')
 export class GoogleAuthController {
   constructor(
     @Inject(GOOGLE_AUTH_PORT)
     private readonly googleAuth: GoogleAuthPort,
+    @Inject(TOKEN_SERVICE_PORT)
+    private readonly tokenService: TokenServicePort,
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -81,15 +88,19 @@ export class GoogleAuthController {
       ),
     );
 
-    // Set secure cookie for browser sessions
-    res.cookie('auth_token', result.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    // Set secure cookies for browser sessions
+    AuthCookieHelper.setAuthCookies(
+      res,
+      result.accessToken,
+      result.refreshToken,
+      {
+        accessTokenMaxAgeMs: this.tokenService.getAccessTokenMaxAgeMs(),
+        refreshTokenMaxAgeMs: this.tokenService.getRefreshTokenMaxAgeMs(),
+      },
+      '/api/customers',
+    );
 
-    // If state contains a redirect target, redirect there with token
+    // If state contains a redirect target, redirect there with tokens
     if (
       state &&
       (state.startsWith('http://') ||
@@ -98,6 +109,7 @@ export class GoogleAuthController {
     ) {
       const redirectUrl = new URL(state, 'http://localhost:3000');
       redirectUrl.searchParams.set('token', result.accessToken);
+      redirectUrl.searchParams.set('refreshToken', result.refreshToken);
       return res.redirect(redirectUrl.toString());
     }
 

@@ -4,18 +4,23 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   ParseUUIDPipe,
   Patch,
   Post,
   Query,
+  Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import type { Request, Response } from 'express';
 
 import { RegisterCustomerCommand } from '../application/use-cases/register-customer/register-customer.command.js';
 import { GoogleAuthCommand } from '../application/use-cases/google-auth/google-auth.command.js';
 import { LoginCustomerCommand } from '../application/use-cases/login-customer/login-customer.command.js';
+import { RefreshTokenCommand } from '../application/use-cases/refresh-token/refresh-token.command.js';
 import { UpdateProfileCommand } from '../application/use-cases/update-profile/update-profile.command.js';
 import { DeactivateCustomerCommand } from '../application/use-cases/deactivate-customer/deactivate-customer.command.js';
 import { ActivateCustomerCommand } from '../application/use-cases/activate-customer/activate-customer.command.js';
@@ -24,13 +29,21 @@ import { ListCustomersQuery } from '../application/queries/list-customers/list-c
 import { RegisterCustomerDto } from './dto/register-customer.dto.js';
 import { GoogleAuthDto } from './dto/google-auth.dto.js';
 import { LoginCustomerDto } from './dto/login-customer.dto.js';
+import { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import { UpdateCustomerDto } from './dto/update-customer.dto.js';
 import { ListCustomerQueryDto } from './dto/list-customer-query.dto.js';
+import type { AuthResponseDto } from '../application/dto/auth-response.dto.js';
+import type { TokenResponseDto } from '../application/dto/token-response.dto.js';
 import {
   JwtAuthGuard,
   type AuthenticatedUser,
 } from './guards/jwt-auth.guard.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
+import {
+  TOKEN_SERVICE_PORT,
+  type TokenServicePort,
+} from '../../shared/application/ports/token-service.port.js';
+import { AuthCookieHelper } from '../../shared/infrastructure/auth/auth-cookie.helper.js';
 import {
   ApplicationException,
   ApplicationExceptionCode,
@@ -41,16 +54,24 @@ export class CustomerController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    @Inject(TOKEN_SERVICE_PORT)
+    private readonly tokenService: TokenServicePort,
   ) {}
 
   // -------------------------------------------------------------
-  // Public Authentication Endpoints
+  // Public Authentication Endpoints (Dual Token)
   // -------------------------------------------------------------
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() dto: RegisterCustomerDto) {
-    const result = await this.commandBus.execute(
+  async register(
+    @Body() dto: RegisterCustomerDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.commandBus.execute<
+      RegisterCustomerCommand,
+      AuthResponseDto
+    >(
       new RegisterCustomerCommand(
         dto.email,
         dto.password,
@@ -59,13 +80,21 @@ export class CustomerController {
         dto.phoneNumber,
       ),
     );
+
+    this.setTokenCookies(res, result.accessToken, result.refreshToken);
     return { data: result };
   }
 
   @Post('google')
   @HttpCode(HttpStatus.OK)
-  async googleAuth(@Body() dto: GoogleAuthDto) {
-    const result = await this.commandBus.execute(
+  async googleAuth(
+    @Body() dto: GoogleAuthDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.commandBus.execute<
+      GoogleAuthCommand,
+      AuthResponseDto
+    >(
       new GoogleAuthCommand(
         dto.googleId,
         dto.email,
@@ -74,18 +103,57 @@ export class CustomerController {
         dto.avatarUrl,
       ),
     );
+
+    this.setTokenCookies(res, result.accessToken, result.refreshToken);
     return { data: result };
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() dto: LoginCustomerDto) {
-    const result = await this.commandBus.execute(
-      new LoginCustomerCommand(dto.email, dto.password),
-    );
-    return { data: result };
+  async login(
+    @Body() dto: LoginCustomerDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.commandBus.execute<
+      LoginCustomerCommand,
+      AuthResponseDto
+    >(new LoginCustomerCommand(dto.email, dto.password));
 
-    // return null
+    this.setTokenCookies(res, result.accessToken, result.refreshToken);
+    return { data: result };
+  }
+
+  @Post('refresh-token')
+  @HttpCode(HttpStatus.OK)
+  async refreshToken(
+    @Body() dto: RefreshTokenDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token =
+      dto?.refreshToken || AuthCookieHelper.extractCookie(req, 'refresh_token');
+
+    if (!token) {
+      throw new ApplicationException(
+        'Refresh token is required in request body or cookie',
+        ApplicationExceptionCode.VALIDATION_ERROR,
+      );
+    }
+
+    const result = await this.commandBus.execute<
+      RefreshTokenCommand,
+      TokenResponseDto
+    >(new RefreshTokenCommand(token));
+
+    this.setTokenCookies(res, result.accessToken, result.refreshToken);
+    return { data: result };
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Res({ passthrough: true }) res: Response) {
+    AuthCookieHelper.clearAuthCookies(res, '/api/customers');
+    return { data: { message: 'Logged out successfully' } };
   }
 
   // -------------------------------------------------------------
@@ -191,5 +259,26 @@ export class CustomerController {
   async activate(@Param('id', ParseUUIDPipe) id: string) {
     await this.commandBus.execute(new ActivateCustomerCommand(id));
     return { data: { message: 'Customer account activated successfully' } };
+  }
+
+  // -------------------------------------------------------------
+  // Private Helper Methods
+  // -------------------------------------------------------------
+
+  private setTokenCookies(
+    res: Response,
+    accessToken: string,
+    refreshToken: string,
+  ): void {
+    AuthCookieHelper.setAuthCookies(
+      res,
+      accessToken,
+      refreshToken,
+      {
+        accessTokenMaxAgeMs: this.tokenService.getAccessTokenMaxAgeMs(),
+        refreshTokenMaxAgeMs: this.tokenService.getRefreshTokenMaxAgeMs(),
+      },
+      '/api/customers',
+    );
   }
 }
