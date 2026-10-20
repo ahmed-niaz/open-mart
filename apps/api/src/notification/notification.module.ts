@@ -6,6 +6,8 @@ import { NOTIFICATION_PORT } from './application/ports/notification.port.js';
 import { NodemailerNotificationAdapter } from './infrastructure/adapters/nodemailer-notification.adapter.js';
 import { ConsoleNotificationAdapter } from './infrastructure/adapters/console-notification.adapter.js';
 import { CustomerRegisteredEventHandler } from './application/event-handlers/customer-registered.event-handler.js';
+import { OrderPlacedEventHandler } from './application/event-handlers/order-placed.event-handler.js';
+import { OrderShippedEventHandler } from './application/event-handlers/order-shipped.event-handler.js';
 
 @Module({
   imports: [CqrsModule, ConfigModule],
@@ -24,6 +26,8 @@ import { CustomerRegisteredEventHandler } from './application/event-handlers/cus
       inject: [ConfigService],
     },
     CustomerRegisteredEventHandler,
+    OrderPlacedEventHandler,
+    OrderShippedEventHandler,
   ],
   exports: [NOTIFICATION_PORT],
 })

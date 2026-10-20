@@ -1,0 +1,259 @@
+import { randomUUID } from 'node:crypto';
+import { Inject, Injectable } from '@nestjs/common';
+import { EventPublisher } from '@nestjs/cqrs';
+import { and, eq } from 'drizzle-orm';
+import { OrderRepositoryPort } from '../../application/ports/order.repository.js';
+import { Order } from '../../domain/entities/order.entity.js';
+import { OrderId } from '../../domain/value-objects/order-id.vo.js';
+import { OrderItemId } from '../../domain/value-objects/order-item-id.vo.js';
+import { OrderStatus } from '../../domain/value-objects/order-status.vo.js';
+import { ShippingAddress } from '../../domain/value-objects/shipping-address.vo.js';
+import { OrderItem } from '../../domain/entities/order-item.entity.js';
+import { Money } from '../../../shared/domain/value-objects/money.vo.js';
+import {
+  DRIZZLE,
+  type DrizzleDB,
+} from '../../../shared/infrastructure/database/postgres/drizzle.provider.js';
+import {
+  orderItemsSchema,
+  ordersSchema,
+  orderStatusHistorySchema,
+  type OrderItemInsertRow,
+  type OrderItemSelectRow,
+  type OrderInsertRow,
+  type OrderSelectRow,
+} from '../../../shared/infrastructure/database/postgres/schema/order.schema.js';
+import {
+  ApplicationException,
+  ApplicationExceptionCode,
+} from '../../../shared/domain/exceptions/application.exception.js';
+
+@Injectable()
+export class DrizzleOrderRepository implements OrderRepositoryPort {
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    private readonly eventPublisher: EventPublisher,
+  ) {}
+
+  async findById(id: OrderId): Promise<Order | null> {
+    const orders = await this.db
+      .select()
+      .from(ordersSchema)
+      .where(eq(ordersSchema.id, id.getValue()))
+      .limit(1);
+
+    if (orders.length === 0) {
+      return null;
+    }
+
+    const orderRow = orders[0];
+
+    const itemRows = await this.db
+      .select()
+      .from(orderItemsSchema)
+      .where(eq(orderItemsSchema.orderId, id.getValue()));
+
+    return this.toDomain(orderRow, itemRows);
+  }
+
+  async save(order: Order): Promise<void> {
+    const orderWithEvents = this.eventPublisher.mergeObjectContext(order);
+
+    await this.db.transaction(async (trx) => {
+      const existing = await trx
+        .select({
+          id: ordersSchema.id,
+          version: ordersSchema.version,
+          status: ordersSchema.status,
+        })
+        .from(ordersSchema)
+        .where(eq(ordersSchema.id, order.id.getValue()))
+        .limit(1);
+
+      if (existing.length === 0) {
+        // Insert new order
+        const orderRow = this.toOrderPersistence(order);
+        await trx.insert(ordersSchema).values(orderRow);
+
+        // Insert items
+        const itemRows = order.items.map((item) =>
+          this.toOrderItemPersistence(item, order.id.getValue()),
+        );
+        if (itemRows.length > 0) {
+          await trx.insert(orderItemsSchema).values(itemRows);
+        }
+
+        // Audit status history: initial pending status
+        await trx.insert(orderStatusHistorySchema).values({
+          id: randomUUID(),
+          orderId: order.id.getValue(),
+          fromStatus: null,
+          toStatus: order.status.getValue(),
+          changedBy: order.customerId ?? 'customer',
+          reason: order.notes ?? 'Order placed',
+          changedAt: order.createdAt,
+        });
+      } else {
+        // OCC Update: enforce atomic version matching
+        const currentVersion = order.version;
+        const nextVersion = currentVersion + 1;
+        const previousStatus = existing[0].status;
+
+        const addr = order.shippingAddress;
+        const updated = await trx
+          .update(ordersSchema)
+          .set({
+            status: order.status.getValue(),
+            totalAmount: order.getTotalAmount().toCents(),
+            totalCurrency: order.getTotalAmount().getCurrency(),
+            recipientName: addr.recipientName,
+            recipientPhone: addr.recipientPhone,
+            altPhone: addr.altPhone,
+            shippingDivision: addr.division,
+            shippingDistrict: addr.district,
+            shippingCity: addr.city,
+            shippingArea: addr.area,
+            shippingAddressLine: addr.addressLine,
+            shippingPostalCode: addr.postalCode,
+            shippingCountry: addr.country,
+            courierName: order.courierName,
+            trackingNumber: order.trackingNumber,
+            notes: order.notes,
+            shippedAt: order.shippedAt,
+            deliveredAt: order.deliveredAt,
+            cancelledAt: order.cancelledAt,
+            cancellationReason: order.cancellationReason,
+            version: nextVersion,
+            updatedAt: order.updatedAt,
+          })
+          .where(
+            and(
+              eq(ordersSchema.id, order.id.getValue()),
+              eq(ordersSchema.version, currentVersion),
+            ),
+          )
+          .returning({ id: ordersSchema.id });
+
+        if (updated.length === 0) {
+          throw new ApplicationException(
+            `Optimistic lock failure: Order '${order.id.getValue()}' was modified concurrently by another process.`,
+            ApplicationExceptionCode.CONFLICT,
+          );
+        }
+
+        // Audit status history on state transitions
+        if (previousStatus !== order.status.getValue()) {
+          await trx.insert(orderStatusHistorySchema).values({
+            id: randomUUID(),
+            orderId: order.id.getValue(),
+            fromStatus: previousStatus,
+            toStatus: order.status.getValue(),
+            changedBy: order.customerId ?? 'system',
+            reason: order.cancellationReason ?? null,
+            changedAt: new Date(),
+          });
+        }
+
+        order.incrementVersion();
+      }
+    });
+
+    // Commit all staged domain events to the CQRS EventBus
+    orderWithEvents.commit();
+  }
+
+  private toDomain(
+    orderRow: OrderSelectRow,
+    itemRows: OrderItemSelectRow[],
+  ): Order {
+    const items = itemRows.map((row) =>
+      OrderItem.reconstitute({
+        id: OrderItemId.fromString(row.id),
+        productId: row.productId ?? '',
+        productName: row.productName,
+        productSku: row.productSku,
+        unitPrice: Money.fromCents(row.unitPriceAmount, row.unitPriceCurrency),
+        quantity: row.quantity,
+      }),
+    );
+
+    const shippingAddress = ShippingAddress.create({
+      recipientName: orderRow.recipientName,
+      recipientPhone: orderRow.recipientPhone,
+      altPhone: orderRow.altPhone,
+      division: orderRow.shippingDivision,
+      district: orderRow.shippingDistrict,
+      city: orderRow.shippingCity,
+      area: orderRow.shippingArea,
+      addressLine: orderRow.shippingAddressLine,
+      postalCode: orderRow.shippingPostalCode,
+      country: orderRow.shippingCountry,
+    });
+
+    return Order.reconstitute({
+      id: OrderId.fromString(orderRow.id),
+      customerId: orderRow.customerId,
+      status: OrderStatus.fromString(orderRow.status),
+      items,
+      shippingAddress,
+      courierName: orderRow.courierName,
+      trackingNumber: orderRow.trackingNumber,
+      notes: orderRow.notes,
+      shippedAt: orderRow.shippedAt,
+      deliveredAt: orderRow.deliveredAt,
+      cancelledAt: orderRow.cancelledAt,
+      cancellationReason: orderRow.cancellationReason,
+      version: orderRow.version,
+      createdAt: orderRow.createdAt,
+      updatedAt: orderRow.updatedAt,
+    });
+  }
+
+  private toOrderPersistence(order: Order): OrderInsertRow {
+    const addr = order.shippingAddress;
+    return {
+      id: order.id.getValue(),
+      customerId: order.customerId,
+      status: order.status.getValue(),
+      totalAmount: order.getTotalAmount().toCents(),
+      totalCurrency: order.getTotalAmount().getCurrency(),
+      recipientName: addr.recipientName,
+      recipientPhone: addr.recipientPhone,
+      altPhone: addr.altPhone,
+      shippingDivision: addr.division,
+      shippingDistrict: addr.district,
+      shippingCity: addr.city,
+      shippingArea: addr.area,
+      shippingAddressLine: addr.addressLine,
+      shippingPostalCode: addr.postalCode,
+      shippingCountry: addr.country,
+      courierName: order.courierName,
+      trackingNumber: order.trackingNumber,
+      notes: order.notes,
+      shippedAt: order.shippedAt,
+      deliveredAt: order.deliveredAt,
+      cancelledAt: order.cancelledAt,
+      cancellationReason: order.cancellationReason,
+      version: order.version,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+    };
+  }
+
+  private toOrderItemPersistence(
+    item: OrderItem,
+    orderId: string,
+  ): OrderItemInsertRow {
+    return {
+      id: item.id.getValue(),
+      orderId,
+      productId: item.productId,
+      productName: item.productName,
+      productSku: item.productSku,
+      unitPriceAmount: item.unitPrice.toCents(),
+      unitPriceCurrency: item.unitPrice.getCurrency(),
+      quantity: item.quantity,
+      createdAt: new Date(),
+    };
+  }
+}
