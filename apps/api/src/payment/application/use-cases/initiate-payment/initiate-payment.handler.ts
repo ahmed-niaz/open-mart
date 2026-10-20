@@ -20,9 +20,10 @@ import {
 } from '../../../../shared/domain/exceptions/application.exception.js';
 
 @CommandHandler(InitiatePaymentCommand)
-export class InitiatePaymentCommandHandler
-  implements ICommandHandler<InitiatePaymentCommand, InitiatePaymentResponseDto>
-{
+export class InitiatePaymentCommandHandler implements ICommandHandler<
+  InitiatePaymentCommand,
+  InitiatePaymentResponseDto
+> {
   private readonly logger = new Logger(InitiatePaymentCommandHandler.name);
 
   constructor(
@@ -84,9 +85,7 @@ export class InitiatePaymentCommandHandler
     }
 
     const customerEmail =
-      command.customerEmail ||
-      order.customerEmail ||
-      'customer@example.com';
+      command.customerEmail || order.customerEmail || 'customer@example.com';
 
     // 1. Create the new Payment Aggregate in 'pending' status
     const payment = Payment.create({
@@ -137,4 +136,3 @@ export class InitiatePaymentCommandHandler
     };
   }
 }
-

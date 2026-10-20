@@ -52,11 +52,12 @@ export interface PaymentGatewayStrategy {
   verifyAndParseWebhook(
     request: GenericWebhookRequest,
   ): Promise<WebhookVerificationResult>;
-  validateRedirect?(payload: Record<string, any>): Promise<WebhookVerificationResult>;
+  validateRedirect?(
+    payload: Record<string, any>,
+  ): Promise<WebhookVerificationResult>;
   refund?(
     transactionId: string,
     amount: Money,
     reason?: string,
   ): Promise<{ refundId: string }>;
 }
-

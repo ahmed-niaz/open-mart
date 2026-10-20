@@ -1,5 +1,10 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandBus, CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
+import {
+  CommandBus,
+  CommandHandler,
+  EventBus,
+  ICommandHandler,
+} from '@nestjs/cqrs';
 
 import { HandleRedirectCallbackCommand } from './handle-redirect-callback.command.js';
 import {
@@ -26,10 +31,10 @@ export interface RedirectCallbackResult {
 }
 
 @CommandHandler(HandleRedirectCallbackCommand)
-export class HandleRedirectCallbackCommandHandler
-  implements
-    ICommandHandler<HandleRedirectCallbackCommand, RedirectCallbackResult>
-{
+export class HandleRedirectCallbackCommandHandler implements ICommandHandler<
+  HandleRedirectCallbackCommand,
+  RedirectCallbackResult
+> {
   private readonly logger = new Logger(
     HandleRedirectCallbackCommandHandler.name,
   );
@@ -65,7 +70,9 @@ export class HandleRedirectCallbackCommandHandler
 
     // Try payload tran_id (our paymentId passed at initiation)
     if (!payment && payload.tran_id) {
-      payment = await this.paymentRepository.findByTransactionId(payload.tran_id);
+      payment = await this.paymentRepository.findByTransactionId(
+        payload.tran_id,
+      );
       if (!payment) {
         try {
           payment = await this.paymentRepository.findById(
@@ -98,7 +105,8 @@ export class HandleRedirectCallbackCommandHandler
 
     if (verification.eventType === 'payment.succeeded') {
       // Check currency/amount tolerance (SSLCommerz may convert foreign USD to BDT in sandbox)
-      const valRes = (verification.gatewayPayload?.validationResponse as any) || {};
+      const valRes =
+        (verification.gatewayPayload?.validationResponse as any) || {};
       const matchesCurrency =
         payment.amount.getCurrency() === verification.amount.getCurrency() ||
         valRes.currency_type === payment.amount.getCurrency();
@@ -122,7 +130,9 @@ export class HandleRedirectCallbackCommandHandler
 
         // Guarantee immediate order confirmation
         try {
-          await this.commandBus.execute(new ConfirmOrderCommand(payment.orderId));
+          await this.commandBus.execute(
+            new ConfirmOrderCommand(payment.orderId),
+          );
           this.logger.log(`Order ${payment.orderId} confirmed via CommandBus!`);
         } catch (err: any) {
           this.logger.error(
@@ -177,7 +187,8 @@ export class HandleRedirectCallbackCommandHandler
 
       if (payment.status.isPending() || payment.status.isProcessing()) {
         payment.cancel(
-          verification.failureReason || 'Customer cancelled payment during redirect',
+          verification.failureReason ||
+            'Customer cancelled payment during redirect',
         );
         await this.paymentRepository.save(payment);
 
@@ -187,7 +198,8 @@ export class HandleRedirectCallbackCommandHandler
             payment.orderId,
             payment.customerId,
             payment.provider.getValue(),
-            verification.failureReason || 'Customer cancelled payment during redirect',
+            verification.failureReason ||
+              'Customer cancelled payment during redirect',
             customerEmail,
             customerName,
             new Date(),

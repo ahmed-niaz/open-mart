@@ -4,4 +4,3 @@ export class HandleRedirectCallbackCommand {
     public readonly payload: Record<string, any>,
   ) {}
 }
-

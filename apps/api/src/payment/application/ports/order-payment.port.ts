@@ -24,4 +24,3 @@ export const ORDER_PAYMENT_PORT = Symbol('ORDER_PAYMENT_PORT');
 export interface OrderPaymentPort {
   getOrderForPayment(orderId: string): Promise<OrderPaymentSnapshot | null>;
 }
-

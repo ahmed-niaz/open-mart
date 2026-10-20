@@ -19,9 +19,7 @@ import {
 import { customersSchema } from '../../../shared/infrastructure/database/postgres/schema/customer.schema.js';
 
 @EventsHandler(PaymentCompletedIntegrationEvent)
-export class PaymentCompletedNotificationHandler
-  implements IEventHandler<PaymentCompletedIntegrationEvent>
-{
+export class PaymentCompletedNotificationHandler implements IEventHandler<PaymentCompletedIntegrationEvent> {
   private readonly logger = new Logger(
     PaymentCompletedNotificationHandler.name,
   );
@@ -68,9 +66,7 @@ export class PaymentCompletedNotificationHandler
     const adminEmail =
       this.configService.get<string>('SMTP_USER') ?? 'admin@openmart.com';
     const recipientEmail =
-      event.customerEmail ||
-      orderRow?.customerEmail ||
-      adminEmail;
+      event.customerEmail || orderRow?.customerEmail || adminEmail;
 
     const customerName =
       event.customerName ||
@@ -189,7 +185,9 @@ export class PaymentCompletedNotificationHandler
     const text = `Hi ${customerName}, your payment of $${amountFormatted} ${event.currency} for order #${event.orderId.slice(0, 8)} is confirmed! Provider: ${event.provider.toUpperCase()}, Txn ID: ${event.transactionId}.`;
 
     try {
-      this.logger.log(`Sending payment confirmation email to: ${recipientEmail}`);
+      this.logger.log(
+        `Sending payment confirmation email to: ${recipientEmail}`,
+      );
       await this.notificationService.sendEmail({
         to: recipientEmail,
         subject,

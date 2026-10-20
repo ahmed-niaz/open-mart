@@ -15,4 +15,3 @@ export class InitiatePaymentDto {
   @IsOptional()
   customerEmail?: string;
 }
-

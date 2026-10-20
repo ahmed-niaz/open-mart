@@ -18,11 +18,7 @@ describe('PaymentStrategyRegistry', () => {
     getProviderName: vi.fn().mockReturnValue('sslcommerz'),
   } as unknown as SslCommerzPaymentStrategy;
 
-  const registry = new PaymentStrategyRegistry(
-    stripeMock,
-    codMock,
-    sslMock,
-  );
+  const registry = new PaymentStrategyRegistry(stripeMock, codMock, sslMock);
 
   it('should retrieve stripe strategy', () => {
     const strategy = registry.getStrategy('stripe');

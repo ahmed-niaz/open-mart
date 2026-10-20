@@ -20,9 +20,10 @@ export interface CancelPaymentResult {
 }
 
 @CommandHandler(CancelPaymentCommand)
-export class CancelPaymentCommandHandler
-  implements ICommandHandler<CancelPaymentCommand, CancelPaymentResult>
-{
+export class CancelPaymentCommandHandler implements ICommandHandler<
+  CancelPaymentCommand,
+  CancelPaymentResult
+> {
   private readonly logger = new Logger(CancelPaymentCommandHandler.name);
 
   constructor(
@@ -64,10 +65,8 @@ export class CancelPaymentCommandHandler
     payment.cancel(cancelReason);
     await this.paymentRepository.save(payment);
 
-    const customerEmail =
-      (payment.metadata?.customerEmail as string) || null;
-    const customerName =
-      (payment.metadata?.customerName as string) || null;
+    const customerEmail = (payment.metadata?.customerEmail as string) || null;
+    const customerName = (payment.metadata?.customerName as string) || null;
 
     this.eventBus.publish(
       new PaymentCancelledIntegrationEvent(
@@ -90,4 +89,3 @@ export class CancelPaymentCommandHandler
     };
   }
 }
-

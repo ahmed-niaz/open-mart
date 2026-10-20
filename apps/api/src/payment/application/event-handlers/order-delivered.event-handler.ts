@@ -9,9 +9,7 @@ import {
 import { PaymentCompletedIntegrationEvent } from '../../../shared/contracts/events/payment-completed.event.js';
 
 @EventsHandler(OrderDeliveredEvent)
-export class OrderDeliveredPaymentHandler
-  implements IEventHandler<OrderDeliveredEvent>
-{
+export class OrderDeliveredPaymentHandler implements IEventHandler<OrderDeliveredEvent> {
   private readonly logger = new Logger(OrderDeliveredPaymentHandler.name);
 
   constructor(
@@ -43,10 +41,8 @@ export class OrderDeliveredPaymentHandler
       payment.complete(payment.transactionId || `COD-COLLECTED`, paidAt);
       await this.paymentRepository.save(payment);
 
-      const customerEmail =
-        (payment.metadata?.customerEmail as string) || null;
-      const customerName =
-        (payment.metadata?.customerName as string) || null;
+      const customerEmail = (payment.metadata?.customerEmail as string) || null;
+      const customerName = (payment.metadata?.customerName as string) || null;
 
       this.eventBus.publish(
         new PaymentCompletedIntegrationEvent(
@@ -65,4 +61,3 @@ export class OrderDeliveredPaymentHandler
     }
   }
 }
-

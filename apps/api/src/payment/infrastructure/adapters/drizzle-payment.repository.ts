@@ -3,9 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventPublisher } from '@nestjs/cqrs';
 import { and, desc, eq } from 'drizzle-orm';
 
-import {
-  PaymentRepositoryPort,
-} from '../../application/ports/payment.repository.js';
+import { PaymentRepositoryPort } from '../../application/ports/payment.repository.js';
 import { Payment } from '../../domain/entities/payment.entity.js';
 import { PaymentId } from '../../domain/value-objects/payment-id.vo.js';
 import { PaymentProvider } from '../../domain/value-objects/payment-provider.vo.js';
@@ -177,10 +175,7 @@ export class DrizzlePaymentRepository implements PaymentRepositoryPort {
 
   private toDomain(row: typeof paymentsSchema.$inferSelect): Payment {
     const amount = Money.fromCents(row.amount, row.currency);
-    const refundedAmount = Money.fromCents(
-      row.refundedAmount,
-      row.currency,
-    );
+    const refundedAmount = Money.fromCents(row.refundedAmount, row.currency);
 
     return Payment.reconstitute({
       id: PaymentId.fromString(row.id),
@@ -203,4 +198,3 @@ export class DrizzlePaymentRepository implements PaymentRepositoryPort {
     });
   }
 }
-

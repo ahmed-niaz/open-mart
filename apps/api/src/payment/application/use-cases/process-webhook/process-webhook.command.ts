@@ -3,4 +3,3 @@ import { GenericWebhookRequest } from '../../ports/payment-gateway-strategy.port
 export class ProcessWebhookCommand {
   constructor(public readonly request: GenericWebhookRequest) {}
 }
-

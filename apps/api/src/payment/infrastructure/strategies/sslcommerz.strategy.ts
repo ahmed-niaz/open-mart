@@ -90,7 +90,9 @@ export class SslCommerzPaymentStrategy implements PaymentGatewayStrategy {
       cancel_url: this.cancelUrl,
       ipn_url: this.ipnUrl,
       shipping_method: 'NO',
-      product_name: input.orderNumber ? `Order #${input.orderNumber}` : `Order ${input.orderId}`,
+      product_name: input.orderNumber
+        ? `Order #${input.orderNumber}`
+        : `Order ${input.orderId}`,
       product_category: 'General',
       product_profile: 'general',
       cus_name: input.customerName || 'Valued Customer',
@@ -174,8 +176,14 @@ export class SslCommerzPaymentStrategy implements PaymentGatewayStrategy {
 
     const normalizedStatus = (payload.status || '').toUpperCase();
     const orderId = payload.value_a || payload.order_id || '';
-    const amountNumber = parseFloat(payload.amount || payload.currency_amount || '0');
-    const currency = (payload.currency || payload.currency_type || 'USD').toUpperCase();
+    const amountNumber = parseFloat(
+      payload.amount || payload.currency_amount || '0',
+    );
+    const currency = (
+      payload.currency ||
+      payload.currency_type ||
+      'USD'
+    ).toUpperCase();
     const transactionId =
       payload.tran_id || payload.sessionkey || payload.bank_tran_id || '';
 
@@ -197,7 +205,10 @@ export class SslCommerzPaymentStrategy implements PaymentGatewayStrategy {
         transactionId,
         orderId,
         amount: Money.create(amountNumber, currency),
-        failureReason: payload.failedreason || payload.error || 'Payment cancelled by customer',
+        failureReason:
+          payload.failedreason ||
+          payload.error ||
+          'Payment cancelled by customer',
         gatewayPayload: payload,
       };
     }
@@ -209,7 +220,10 @@ export class SslCommerzPaymentStrategy implements PaymentGatewayStrategy {
         transactionId,
         orderId,
         amount: Money.create(amountNumber, currency),
-        failureReason: payload.failedreason || payload.error || 'Payment failed on SSLCommerz',
+        failureReason:
+          payload.failedreason ||
+          payload.error ||
+          'Payment failed on SSLCommerz',
         gatewayPayload: payload,
       };
     }
@@ -235,12 +249,15 @@ export class SslCommerzPaymentStrategy implements PaymentGatewayStrategy {
       const data = (await res.json()) as SslValidationResponse;
 
       const isValid = data.status === 'VALID' || data.status === 'VALIDATED';
-      const isCancelled = data.status === 'CANCELLED' || data.status === 'CANCEL';
+      const isCancelled =
+        data.status === 'CANCELLED' || data.status === 'CANCEL';
       const orderId = data.value_a || (rawPayload.value_a as string) || '';
       const amountNumber = parseFloat(data.amount || '0');
       const currency = (data.currency || 'USD').toUpperCase();
 
-      let eventType: 'payment.succeeded' | 'payment.failed' | 'payment.cancelled' = 'payment.failed';
+      let eventType:
+        'payment.succeeded' | 'payment.failed' | 'payment.cancelled' =
+        'payment.failed';
       if (isValid) {
         eventType = 'payment.succeeded';
       } else if (isCancelled) {
@@ -252,14 +269,19 @@ export class SslCommerzPaymentStrategy implements PaymentGatewayStrategy {
         transactionId: data.val_id || valId,
         orderId,
         amount: Money.create(amountNumber, currency),
-        failureReason: isValid ? undefined : data.error || `SSLCommerz status: ${data.status}`,
+        failureReason: isValid
+          ? undefined
+          : data.error || `SSLCommerz status: ${data.status}`,
         gatewayPayload: {
           ...rawPayload,
           validationResponse: data,
         },
       };
     } catch (err: any) {
-      this.logger.error(`SSLCommerz validation failed: ${err.message}`, err.stack);
+      this.logger.error(
+        `SSLCommerz validation failed: ${err.message}`,
+        err.stack,
+      );
       throw new ApplicationException(
         `Failed to validate SSLCommerz transaction: ${err.message}`,
         ApplicationExceptionCode.INTERNAL_SERVER_ERROR,
@@ -267,4 +289,3 @@ export class SslCommerzPaymentStrategy implements PaymentGatewayStrategy {
     }
   }
 }
-

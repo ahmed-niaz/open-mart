@@ -52,4 +52,3 @@ import { OptionalJwtAuthGuard } from '../shared/infrastructure/guards/optional-j
   exports: [PAYMENT_REPOSITORY],
 })
 export class PaymentModule {}
-

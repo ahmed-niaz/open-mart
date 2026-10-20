@@ -128,7 +128,9 @@ describe('Payment Notification Event Handlers', () => {
       expect(callArgs.to).toBe('alice@customer.com');
       expect(callArgs.subject).toContain('Payment Unsuccessful');
       expect(callArgs.html).toContain('Card declined by issuer');
-      expect(callArgs.html).toContain('http://localhost:3000/checkout?order_id=ord-123');
+      expect(callArgs.html).toContain(
+        'http://localhost:3000/checkout?order_id=ord-123',
+      );
     });
   });
 
@@ -156,9 +158,12 @@ describe('Payment Notification Event Handlers', () => {
       const callArgs = mockNotificationService.sendEmail.mock.calls[0][0];
       expect(callArgs.to).toBe('alice@customer.com');
       expect(callArgs.subject).toContain('Payment Cancelled');
-      expect(callArgs.html).toContain('Customer cancelled the payment on SSLCommerz');
-      expect(callArgs.html).toContain('http://localhost:3000/checkout?order_id=ord-123');
+      expect(callArgs.html).toContain(
+        'Customer cancelled the payment on SSLCommerz',
+      );
+      expect(callArgs.html).toContain(
+        'http://localhost:3000/checkout?order_id=ord-123',
+      );
     });
   });
 });
-

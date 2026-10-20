@@ -10,4 +10,3 @@ export interface InitiatePaymentResponseDto {
   clientSecret?: string;
   metadata?: Record<string, unknown> | null;
 }
-

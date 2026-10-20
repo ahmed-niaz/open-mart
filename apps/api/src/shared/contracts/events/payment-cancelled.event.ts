@@ -10,4 +10,3 @@ export class PaymentCancelledIntegrationEvent {
     public readonly occurredAt: Date = new Date(),
   ) {}
 }
-

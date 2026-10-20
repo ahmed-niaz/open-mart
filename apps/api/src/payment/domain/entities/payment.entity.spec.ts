@@ -86,10 +86,7 @@ describe('Payment Aggregate Root', () => {
       amount: defaultAmount,
     });
 
-    payment.markNeedsReview(
-      'Currency mismatch',
-      Money.fromCents(2500, 'EUR'),
-    );
+    payment.markNeedsReview('Currency mismatch', Money.fromCents(2500, 'EUR'));
     expect(payment.status.isNeedsReview()).toBe(true);
     expect(payment.failureReason).toBe('Currency mismatch');
   });
@@ -139,4 +136,3 @@ describe('Payment Aggregate Root', () => {
     expect(payment.version).toBe(2);
   });
 });
-

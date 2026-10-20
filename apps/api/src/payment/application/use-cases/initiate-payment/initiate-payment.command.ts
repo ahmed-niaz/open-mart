@@ -6,4 +6,3 @@ export class InitiatePaymentCommand {
     public readonly customerEmail?: string,
   ) {}
 }
-

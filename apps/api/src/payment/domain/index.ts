@@ -7,4 +7,3 @@ export * from './events/payment-completed.event.js';
 export * from './events/payment-failed.event.js';
 export * from './events/payment-cancelled.event.js';
 export * from './events/payment-needs-review.event.js';
-

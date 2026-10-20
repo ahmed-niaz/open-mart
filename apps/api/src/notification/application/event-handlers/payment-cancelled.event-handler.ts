@@ -16,10 +16,10 @@ import { ordersSchema } from '../../../shared/infrastructure/database/postgres/s
 import { customersSchema } from '../../../shared/infrastructure/database/postgres/schema/customer.schema.js';
 
 @EventsHandler(PaymentCancelledIntegrationEvent)
-export class PaymentCancelledNotificationHandler
-  implements IEventHandler<PaymentCancelledIntegrationEvent>
-{
-  private readonly logger = new Logger(PaymentCancelledNotificationHandler.name);
+export class PaymentCancelledNotificationHandler implements IEventHandler<PaymentCancelledIntegrationEvent> {
+  private readonly logger = new Logger(
+    PaymentCancelledNotificationHandler.name,
+  );
 
   constructor(
     @Inject(NOTIFICATION_PORT)
@@ -57,9 +57,7 @@ export class PaymentCancelledNotificationHandler
     const adminEmail =
       this.configService.get<string>('SMTP_USER') ?? 'admin@openmart.com';
     const recipientEmail =
-      event.customerEmail ||
-      orderRow?.customerEmail ||
-      adminEmail;
+      event.customerEmail || orderRow?.customerEmail || adminEmail;
 
     const customerName =
       event.customerName ||
@@ -142,7 +140,9 @@ export class PaymentCancelledNotificationHandler
     const text = `Hi ${customerName}, your payment for order #${event.orderId.slice(0, 8)} was cancelled. Reason: ${event.reason}. You can resume checkout at: ${retryUrl}`;
 
     try {
-      this.logger.log(`Sending payment cancellation email to: ${recipientEmail}`);
+      this.logger.log(
+        `Sending payment cancellation email to: ${recipientEmail}`,
+      );
       await this.notificationService.sendEmail({
         to: recipientEmail,
         subject,
@@ -157,4 +157,3 @@ export class PaymentCancelledNotificationHandler
     }
   }
 }
-

@@ -102,7 +102,10 @@ export class StripePaymentStrategy implements PaymentGatewayStrategy {
         },
       };
     } catch (error: any) {
-      this.logger.error(`Stripe initiatePayment failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Stripe initiatePayment failed: ${error.message}`,
+        error.stack,
+      );
       throw new ApplicationException(
         `Stripe session creation failed: ${error.message}`,
         ApplicationExceptionCode.INTERNAL_SERVER_ERROR,
@@ -273,7 +276,9 @@ export class StripePaymentStrategy implements PaymentGatewayStrategy {
       const refund = await this.stripe.refunds.create({
         payment_intent: transactionId,
         amount: amount.toCents(),
-        reason: (reason as Stripe.RefundCreateParams.Reason) || 'requested_by_customer',
+        reason:
+          (reason as Stripe.RefundCreateParams.Reason) ||
+          'requested_by_customer',
       });
       return { refundId: refund.id };
     } catch (err: any) {
@@ -285,4 +290,3 @@ export class StripePaymentStrategy implements PaymentGatewayStrategy {
     }
   }
 }
-

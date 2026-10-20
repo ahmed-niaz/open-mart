@@ -23,4 +23,3 @@ export interface PaymentRepositoryPort {
     action: (txRepo: PaymentRepositoryPort) => Promise<void>,
   ): Promise<boolean>;
 }
-

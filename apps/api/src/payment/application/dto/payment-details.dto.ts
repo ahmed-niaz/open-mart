@@ -15,4 +15,3 @@ export interface PaymentDetailsDto {
   createdAt: Date;
   updatedAt: Date;
 }
-

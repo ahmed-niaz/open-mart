@@ -45,7 +45,8 @@ export class OrderPaymentAdapter implements OrderPaymentPort {
 
     let customerName: string | null = null;
     if (row.customerFirstName || row.customerLastName) {
-      customerName = `${row.customerFirstName ?? ''} ${row.customerLastName ?? ''}`.trim();
+      customerName =
+        `${row.customerFirstName ?? ''} ${row.customerLastName ?? ''}`.trim();
     } else {
       customerName = order.recipientName;
     }

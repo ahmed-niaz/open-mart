@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import {
-  PaymentGatewayStrategy,
-} from '../../application/ports/payment-gateway-strategy.port.js';
+import { PaymentGatewayStrategy } from '../../application/ports/payment-gateway-strategy.port.js';
 import { StripePaymentStrategy } from './stripe.strategy.js';
 import { CodPaymentStrategy } from './cod.strategy.js';
 import { SslCommerzPaymentStrategy } from './sslcommerz.strategy.js';
@@ -46,4 +44,3 @@ export class PaymentStrategyRegistry {
     return strategy;
   }
 }
-

@@ -10,4 +10,3 @@ export class PaymentNeedsReviewEvent {
     public readonly occurredAt: Date = new Date(),
   ) {}
 }
-

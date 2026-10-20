@@ -34,7 +34,10 @@ describe('CancelPaymentCommandHandler', () => {
       orderId: 'order-123',
       provider: PaymentProvider.stripe(),
       amount: Money.create(5000, 'USD'),
-      metadata: { customerEmail: 'customer@example.com', customerName: 'John Doe' },
+      metadata: {
+        customerEmail: 'customer@example.com',
+        customerName: 'John Doe',
+      },
     });
 
     mockPaymentRepo.findByOrderId.mockResolvedValue(payment);
@@ -77,4 +80,3 @@ describe('CancelPaymentCommandHandler', () => {
     ).rejects.toThrow(ApplicationException);
   });
 });
-

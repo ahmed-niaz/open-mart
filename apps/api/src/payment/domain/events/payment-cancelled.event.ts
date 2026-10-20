@@ -6,4 +6,3 @@ export class PaymentCancelledEvent {
     public readonly occurredAt: Date = new Date(),
   ) {}
 }
-

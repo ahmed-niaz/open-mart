@@ -143,4 +143,3 @@ describe('ProcessWebhookCommandHandler', () => {
     expect(mockEventBus.publish).not.toHaveBeenCalled();
   });
 });
-

@@ -155,7 +155,9 @@ export class PaymentController {
       normalizedProvider !== 'cod' &&
       normalizedProvider !== 'sslcommerz'
     ) {
-      throw new BadRequestException(`Unsupported payment provider: ${provider}`);
+      throw new BadRequestException(
+        `Unsupported payment provider: ${provider}`,
+      );
     }
 
     const result = await this.commandBus.execute(
@@ -296,7 +298,9 @@ export class PaymentController {
    */
   @Get('order/:orderId')
   @UseGuards(OptionalJwtAuthGuard)
-  async getPaymentByOrderId(@Param('orderId', new ParseUUIDPipe()) orderId: string) {
+  async getPaymentByOrderId(
+    @Param('orderId', new ParseUUIDPipe()) orderId: string,
+  ) {
     const result = await this.queryBus.execute(
       new GetPaymentByOrderIdQuery(orderId),
     );

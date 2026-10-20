@@ -31,9 +31,15 @@ export const PAYMENT_PROVIDERS = ['stripe', 'cod', 'sslcommerz'] as const;
 
 export type PaymentProviderValue = (typeof PAYMENT_PROVIDERS)[number];
 
-export const paymentTxnStatusEnum = pgEnum('payment_txn_status', PAYMENT_TXN_STATUSES);
+export const paymentTxnStatusEnum = pgEnum(
+  'payment_txn_status',
+  PAYMENT_TXN_STATUSES,
+);
 
-export const paymentProviderEnum = pgEnum('payment_provider', PAYMENT_PROVIDERS);
+export const paymentProviderEnum = pgEnum(
+  'payment_provider',
+  PAYMENT_PROVIDERS,
+);
 
 export const paymentsSchema = pgTable(
   'payments',
@@ -107,4 +113,3 @@ export const paymentsRelations = relations(paymentsSchema, ({ one }) => ({
     references: [customersSchema.id],
   }),
 }));
-

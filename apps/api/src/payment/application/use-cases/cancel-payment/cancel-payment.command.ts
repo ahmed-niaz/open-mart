@@ -4,4 +4,3 @@ export class CancelPaymentCommand {
     public readonly reason?: string,
   ) {}
 }
-

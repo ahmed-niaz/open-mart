@@ -10,4 +10,3 @@ export class PaymentInitiatedEvent {
     public readonly occurredAt: Date = new Date(),
   ) {}
 }
-

@@ -1,5 +1,10 @@
 import { Inject, Logger } from '@nestjs/common';
-import { CommandBus, CommandHandler, EventBus, ICommandHandler } from '@nestjs/cqrs';
+import {
+  CommandBus,
+  CommandHandler,
+  EventBus,
+  ICommandHandler,
+} from '@nestjs/cqrs';
 
 import { VerifyStripeSessionCommand } from './verify-stripe-session.command.js';
 import {
@@ -31,9 +36,10 @@ export interface VerifyStripeSessionResult {
 }
 
 @CommandHandler(VerifyStripeSessionCommand)
-export class VerifyStripeSessionCommandHandler
-  implements ICommandHandler<VerifyStripeSessionCommand, VerifyStripeSessionResult>
-{
+export class VerifyStripeSessionCommandHandler implements ICommandHandler<
+  VerifyStripeSessionCommand,
+  VerifyStripeSessionResult
+> {
   private readonly logger = new Logger(VerifyStripeSessionCommandHandler.name);
 
   constructor(
@@ -131,9 +137,14 @@ export class VerifyStripeSessionCommandHandler
       // Directly dispatch ConfirmOrderCommand to guarantee immediate order confirmation
       try {
         await this.commandBus.execute(new ConfirmOrderCommand(payment.orderId));
-        this.logger.log(`Order ${payment.orderId} successfully confirmed via CommandBus!`);
+        this.logger.log(
+          `Order ${payment.orderId} successfully confirmed via CommandBus!`,
+        );
       } catch (err: any) {
-        this.logger.error(`Error executing ConfirmOrderCommand: ${err.message}`, err.stack);
+        this.logger.error(
+          `Error executing ConfirmOrderCommand: ${err.message}`,
+          err.stack,
+        );
       }
 
       const customerEmail =

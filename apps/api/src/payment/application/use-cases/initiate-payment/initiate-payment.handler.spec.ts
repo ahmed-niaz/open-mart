@@ -154,4 +154,3 @@ describe('InitiatePaymentCommandHandler', () => {
     expect(mockPaymentRepo.save).toHaveBeenCalled();
   });
 });
-

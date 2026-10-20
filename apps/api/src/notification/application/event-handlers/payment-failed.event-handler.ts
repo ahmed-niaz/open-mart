@@ -16,9 +16,7 @@ import { ordersSchema } from '../../../shared/infrastructure/database/postgres/s
 import { customersSchema } from '../../../shared/infrastructure/database/postgres/schema/customer.schema.js';
 
 @EventsHandler(PaymentFailedIntegrationEvent)
-export class PaymentFailedNotificationHandler
-  implements IEventHandler<PaymentFailedIntegrationEvent>
-{
+export class PaymentFailedNotificationHandler implements IEventHandler<PaymentFailedIntegrationEvent> {
   private readonly logger = new Logger(PaymentFailedNotificationHandler.name);
 
   constructor(
@@ -57,9 +55,7 @@ export class PaymentFailedNotificationHandler
     const adminEmail =
       this.configService.get<string>('SMTP_USER') ?? 'admin@openmart.com';
     const recipientEmail =
-      event.customerEmail ||
-      orderRow?.customerEmail ||
-      adminEmail;
+      event.customerEmail || orderRow?.customerEmail || adminEmail;
 
     const customerName =
       event.customerName ||
@@ -153,4 +149,3 @@ export class PaymentFailedNotificationHandler
     }
   }
 }
-

@@ -9,4 +9,3 @@ export class PaymentFailedEvent {
     public readonly occurredAt: Date = new Date(),
   ) {}
 }
-

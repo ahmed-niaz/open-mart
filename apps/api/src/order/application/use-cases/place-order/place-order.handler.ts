@@ -11,6 +11,10 @@ import {
   type ProductVerificationPort,
 } from '../../ports/product-verification.port.js';
 import {
+  INVENTORY_RESERVATION_PORT,
+  type InventoryReservationPort,
+} from '../../../../inventory/application/ports/inventory-reservation.port.js';
+import {
   ApplicationException,
   ApplicationExceptionCode,
 } from '../../../../shared/domain/exceptions/application.exception.js';
@@ -29,6 +33,8 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
     private readonly orderRepository: OrderRepositoryPort,
     @Inject(PRODUCT_VERIFICATION_PORT)
     private readonly productVerification: ProductVerificationPort,
+    @Inject(INVENTORY_RESERVATION_PORT)
+    private readonly inventoryReservationPort: InventoryReservationPort,
   ) {}
 
   async execute(command: PlaceOrderCommand): Promise<OrderResponseDto> {
@@ -84,6 +90,16 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
       orderItems,
       shippingAddress,
       command.notes,
+    );
+
+    // Two-Phase Reservation: Atomically hold stock for the order (30 min TTL)
+    await this.inventoryReservationPort.reserveStock(
+      order.id.getValue(),
+      orderItems.map((i) => ({
+        sku: i.productSku,
+        quantity: i.quantity,
+      })),
+      30,
     );
 
     await this.orderRepository.save(order);

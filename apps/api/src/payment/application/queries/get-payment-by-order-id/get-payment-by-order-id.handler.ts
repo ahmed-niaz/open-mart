@@ -15,9 +15,10 @@ import {
 } from '../../../../shared/domain/exceptions/application.exception.js';
 
 @QueryHandler(GetPaymentByOrderIdQuery)
-export class GetPaymentByOrderIdQueryHandler
-  implements IQueryHandler<GetPaymentByOrderIdQuery, PaymentDetailsDto>
-{
+export class GetPaymentByOrderIdQueryHandler implements IQueryHandler<
+  GetPaymentByOrderIdQuery,
+  PaymentDetailsDto
+> {
   constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
 
   async execute(query: GetPaymentByOrderIdQuery): Promise<PaymentDetailsDto> {
@@ -55,4 +56,3 @@ export class GetPaymentByOrderIdQueryHandler
     };
   }
 }
-

@@ -9,4 +9,3 @@ export class PaymentId extends UniqueId {
     return new PaymentId(id);
   }
 }
-

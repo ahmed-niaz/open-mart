@@ -133,4 +133,3 @@ export class PaymentStatus {
     return this.value;
   }
 }
-

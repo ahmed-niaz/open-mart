@@ -57,4 +57,3 @@ export class PaymentProvider {
     return this.value;
   }
 }
-

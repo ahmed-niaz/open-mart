@@ -13,9 +13,10 @@ import { PaymentFailedIntegrationEvent } from '../../../../shared/contracts/even
 import { PaymentCancelledIntegrationEvent } from '../../../../shared/contracts/events/payment-cancelled.event.js';
 
 @CommandHandler(ProcessWebhookCommand)
-export class ProcessWebhookCommandHandler
-  implements ICommandHandler<ProcessWebhookCommand, { received: boolean; processed: boolean }>
-{
+export class ProcessWebhookCommandHandler implements ICommandHandler<
+  ProcessWebhookCommand,
+  { received: boolean; processed: boolean }
+> {
   private readonly logger = new Logger(ProcessWebhookCommandHandler.name);
 
   constructor(
@@ -29,7 +30,9 @@ export class ProcessWebhookCommandHandler
     command: ProcessWebhookCommand,
   ): Promise<{ received: boolean; processed: boolean }> {
     const { request } = command;
-    this.logger.log(`Processing webhook event for provider: ${request.provider}`);
+    this.logger.log(
+      `Processing webhook event for provider: ${request.provider}`,
+    );
 
     // 1. Delegate signature & payload verification to Strategy
     const strategy = this.strategyRegistry.getStrategy(request.provider);
@@ -136,7 +139,8 @@ export class ProcessWebhookCommandHandler
         } else if (verification.eventType === 'payment.failed') {
           if (payment.status.isPending() || payment.status.isProcessing()) {
             payment.fail(
-              verification.failureReason || 'Gateway marked transaction as failed',
+              verification.failureReason ||
+                'Gateway marked transaction as failed',
               verification.failureCode,
             );
             const customerEmail =
@@ -159,7 +163,8 @@ export class ProcessWebhookCommandHandler
         } else if (verification.eventType === 'payment.cancelled') {
           if (payment.status.isPending() || payment.status.isProcessing()) {
             payment.cancel(
-              verification.failureReason || 'Cancelled by gateway callback/webhook',
+              verification.failureReason ||
+                'Cancelled by gateway callback/webhook',
             );
             const customerEmail =
               (payment.metadata?.customerEmail as string) || null;
@@ -171,7 +176,8 @@ export class ProcessWebhookCommandHandler
               payment.orderId,
               payment.customerId,
               payment.provider.getValue(),
-              verification.failureReason || 'Cancelled by gateway callback/webhook',
+              verification.failureReason ||
+                'Cancelled by gateway callback/webhook',
               customerEmail,
               customerName,
               new Date(),
@@ -198,4 +204,3 @@ export class ProcessWebhookCommandHandler
     return { received: true, processed: true };
   }
 }
-

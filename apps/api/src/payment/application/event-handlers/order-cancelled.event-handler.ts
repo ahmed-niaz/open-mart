@@ -9,9 +9,7 @@ import {
 import { PaymentCancelledIntegrationEvent } from '../../../shared/contracts/events/payment-cancelled.event.js';
 
 @EventsHandler(OrderCancelledEvent)
-export class OrderCancelledPaymentHandler
-  implements IEventHandler<OrderCancelledEvent>
-{
+export class OrderCancelledPaymentHandler implements IEventHandler<OrderCancelledEvent> {
   private readonly logger = new Logger(OrderCancelledPaymentHandler.name);
 
   constructor(
@@ -37,10 +35,8 @@ export class OrderCancelledPaymentHandler
       payment.cancel(`Order was cancelled: ${event.reason}`);
       await this.paymentRepository.save(payment);
 
-      const customerEmail =
-        (payment.metadata?.customerEmail as string) || null;
-      const customerName =
-        (payment.metadata?.customerName as string) || null;
+      const customerEmail = (payment.metadata?.customerEmail as string) || null;
+      const customerName = (payment.metadata?.customerName as string) || null;
 
       this.eventBus.publish(
         new PaymentCancelledIntegrationEvent(
@@ -57,4 +53,3 @@ export class OrderCancelledPaymentHandler
     }
   }
 }
-
