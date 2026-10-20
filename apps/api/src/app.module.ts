@@ -11,6 +11,7 @@ import { CategoryModule } from './category/category.module.js';
 import { NotificationModule } from './notification/notification.module.js';
 import { CustomerModule } from './customer/customer.module.js';
 import { OrderModule } from './order/order.module.js';
+import { PaymentModule } from './payment/payment.module.js';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { OrderModule } from './order/order.module.js';
     NotificationModule,
     CustomerModule,
     OrderModule,
+    PaymentModule,
   ],
   controllers: [],
   providers: [

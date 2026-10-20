@@ -8,6 +8,9 @@ import { ConsoleNotificationAdapter } from './infrastructure/adapters/console-no
 import { CustomerRegisteredEventHandler } from './application/event-handlers/customer-registered.event-handler.js';
 import { OrderPlacedEventHandler } from './application/event-handlers/order-placed.event-handler.js';
 import { OrderShippedEventHandler } from './application/event-handlers/order-shipped.event-handler.js';
+import { PaymentCompletedNotificationHandler } from './application/event-handlers/payment-completed.event-handler.js';
+import { PaymentFailedNotificationHandler } from './application/event-handlers/payment-failed.event-handler.js';
+import { PaymentCancelledNotificationHandler } from './application/event-handlers/payment-cancelled.event-handler.js';
 
 @Module({
   imports: [CqrsModule, ConfigModule],
@@ -28,6 +31,9 @@ import { OrderShippedEventHandler } from './application/event-handlers/order-shi
     CustomerRegisteredEventHandler,
     OrderPlacedEventHandler,
     OrderShippedEventHandler,
+    PaymentCompletedNotificationHandler,
+    PaymentFailedNotificationHandler,
+    PaymentCancelledNotificationHandler,
   ],
   exports: [NOTIFICATION_PORT],
 })

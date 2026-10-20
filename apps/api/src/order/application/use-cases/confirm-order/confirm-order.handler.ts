@@ -33,6 +33,10 @@ export class ConfirmOrderCommandHandler implements ICommandHandler<
       );
     }
 
+    if (order.status.getValue() === 'confirmed') {
+      return OrderResponseDto.fromDomain(order);
+    }
+
     order.confirm();
     await this.orderRepository.save(order);
 

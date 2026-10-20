@@ -11,6 +11,7 @@ import { PRODUCT_VERIFICATION_PORT } from './application/ports/product-verificat
 import { ProductVerificationAdapter } from './infrastructure/adapters/product-verification.adapter.js';
 import { OrderCommandHandlers } from './application/use-cases/index.js';
 import { OrderQueryHandlers } from './application/queries/index.js';
+import { OrderPaymentSaga } from './application/sagas/order-payment.saga.js';
 import { OptionalJwtAuthGuard } from '../shared/infrastructure/guards/optional-jwt-auth.guard.js';
 import { AdminGuard } from '../shared/infrastructure/guards/admin.guard.js';
 
@@ -28,6 +29,7 @@ import { AdminGuard } from '../shared/infrastructure/guards/admin.guard.js';
     },
     OptionalJwtAuthGuard,
     AdminGuard,
+    OrderPaymentSaga,
     ...OrderCommandHandlers,
     ...OrderQueryHandlers,
   ],
