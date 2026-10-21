@@ -9,6 +9,7 @@ export class OrderItemResponseDto {
   unitPriceAmount!: number;
   unitPriceCurrency!: string;
   quantity!: number;
+  discountAmount!: number;
   totalPriceAmount!: number;
   createdAt!: string;
 
@@ -21,7 +22,9 @@ export class OrderItemResponseDto {
     dto.unitPriceAmount = row.unitPriceAmount;
     dto.unitPriceCurrency = row.unitPriceCurrency;
     dto.quantity = row.quantity;
-    dto.totalPriceAmount = row.unitPriceAmount * row.quantity;
+    dto.discountAmount = row.discountAmount ?? 0;
+    dto.totalPriceAmount =
+      row.unitPriceAmount * row.quantity - (row.discountAmount ?? 0);
     dto.createdAt = row.createdAt.toISOString();
     return dto;
   }
@@ -35,6 +38,7 @@ export class OrderItemResponseDto {
     dto.unitPriceAmount = item.unitPrice.toCents();
     dto.unitPriceCurrency = item.unitPrice.getCurrency();
     dto.quantity = item.quantity;
+    dto.discountAmount = item.discountAmount.toCents();
     dto.totalPriceAmount = item.getSubtotal().toCents();
     dto.createdAt = new Date().toISOString();
     return dto;

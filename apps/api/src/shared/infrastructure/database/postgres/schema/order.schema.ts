@@ -40,6 +40,11 @@ export const ordersSchema = pgTable(
       .notNull()
       .default('USD'),
 
+    // Discount Price Snapshot
+    discountCode: varchar('discount_code', { length: 50 }),
+    discountType: varchar('discount_type', { length: 30 }),
+    discountAmount: integer('discount_amount').notNull().default(0),
+
     // Shipping Address (Bangladesh standard delivery address)
     recipientName: varchar('recipient_name', { length: 100 }).notNull(),
     recipientPhone: varchar('recipient_phone', { length: 20 }).notNull(),
@@ -99,6 +104,8 @@ export const orderItemsSchema = pgTable(
     unitPriceCurrency: varchar('unit_price_currency', { length: 3 })
       .notNull()
       .default('USD'),
+    // Allocated line-item discount amount (poisha / cents)
+    discountAmount: integer('discount_amount').notNull().default(0),
     quantity: integer('quantity').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

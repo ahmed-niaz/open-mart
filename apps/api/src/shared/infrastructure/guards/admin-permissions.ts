@@ -43,6 +43,11 @@ export enum AdminPermission {
   ANALYTICS_READ = 'analytics:read',
   ANALYTICS_FINANCIAL_READ = 'analytics:financial_read',
 
+  // Marketing Promotions & Discounts
+  DISCOUNTS_READ = 'discounts:read',
+  DISCOUNTS_WRITE = 'discounts:write',
+  DISCOUNTS_DELETE = 'discounts:delete',
+
   // System & Auditing
   AUDIT_READ = 'audit:read',
   SYSTEM_SETTINGS = 'system:settings',
@@ -80,6 +85,9 @@ export const ROLE_PERMISSIONS_MAP: Record<
     AdminPermission.AUDIT_READ,
     AdminPermission.ANALYTICS_READ,
     AdminPermission.ANALYTICS_FINANCIAL_READ,
+    AdminPermission.DISCOUNTS_READ,
+    AdminPermission.DISCOUNTS_WRITE,
+    AdminPermission.DISCOUNTS_DELETE,
   ]),
 
   // manager manages catalog, stock replenishment, and order fulfillment
@@ -93,6 +101,8 @@ export const ROLE_PERMISSIONS_MAP: Record<
     AdminPermission.ORDERS_FULFILL,
     AdminPermission.CUSTOMERS_READ,
     AdminPermission.ANALYTICS_READ,
+    AdminPermission.DISCOUNTS_READ,
+    AdminPermission.DISCOUNTS_WRITE,
   ]),
 
   // support has read-only catalog/stock, policy-bounded order actions, and operational analytics
@@ -104,5 +114,6 @@ export const ROLE_PERMISSIONS_MAP: Record<
     AdminPermission.ORDERS_RETURN,
     AdminPermission.CUSTOMERS_READ,
     AdminPermission.ANALYTICS_READ,
+    AdminPermission.DISCOUNTS_READ,
   ]),
 };

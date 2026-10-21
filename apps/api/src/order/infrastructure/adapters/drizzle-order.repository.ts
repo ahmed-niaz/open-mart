@@ -174,6 +174,10 @@ export class DrizzleOrderRepository implements OrderRepositoryPort {
         productSku: row.productSku,
         unitPrice: Money.fromCents(row.unitPriceAmount, row.unitPriceCurrency),
         quantity: row.quantity,
+        discountAmount: Money.fromCents(
+          row.discountAmount ?? 0,
+          row.unitPriceCurrency,
+        ),
       }),
     );
 
@@ -203,6 +207,11 @@ export class DrizzleOrderRepository implements OrderRepositoryPort {
       deliveredAt: orderRow.deliveredAt,
       cancelledAt: orderRow.cancelledAt,
       cancellationReason: orderRow.cancellationReason,
+      discountCode: orderRow.discountCode,
+      discountType: orderRow.discountType,
+      discountAmount: orderRow.discountAmount
+        ? Money.fromCents(orderRow.discountAmount, orderRow.totalCurrency)
+        : Money.zero(orderRow.totalCurrency),
       version: orderRow.version,
       createdAt: orderRow.createdAt,
       updatedAt: orderRow.updatedAt,
@@ -234,6 +243,9 @@ export class DrizzleOrderRepository implements OrderRepositoryPort {
       deliveredAt: order.deliveredAt,
       cancelledAt: order.cancelledAt,
       cancellationReason: order.cancellationReason,
+      discountCode: order.discountCode ?? null,
+      discountType: order.discountType ?? null,
+      discountAmount: order.discountAmount ? order.discountAmount.toCents() : 0,
       version: order.version,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
@@ -253,6 +265,7 @@ export class DrizzleOrderRepository implements OrderRepositoryPort {
       unitPriceAmount: item.unitPrice.toCents(),
       unitPriceCurrency: item.unitPrice.getCurrency(),
       quantity: item.quantity,
+      discountAmount: item.discountAmount ? item.discountAmount.toCents() : 0,
       createdAt: new Date(),
     };
   }

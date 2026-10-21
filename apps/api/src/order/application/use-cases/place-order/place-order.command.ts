@@ -19,5 +19,6 @@ export class PlaceOrderCommand {
     public readonly idempotencyKey?: string | null,
     public readonly guestCustomer?: GuestCustomerInput | null,
     public readonly notes?: string | null,
+    public readonly couponCode?: string | null,
   ) {}
 }

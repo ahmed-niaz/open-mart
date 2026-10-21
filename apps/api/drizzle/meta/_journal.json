@@ -64,6 +64,13 @@
       "when": 1792560614062,
       "tag": "0008_silly_karen_page",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792563118277,
+      "tag": "0009_fearless_overlord",
+      "breakpoints": true
     }
   ]
 }

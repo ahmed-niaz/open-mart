@@ -6,6 +6,7 @@ import { AuthModule } from '../shared/infrastructure/auth/auth.module.js';
 import { CustomerModule } from '../customer/customer.module.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { AdminModule } from '../admin/admin.module.js';
+import { DiscountModule } from '../discount/discount.module.js';
 import { OrderAdminController } from './presentation/order-admin.controller.js';
 import { OrderController } from './presentation/order.controller.js';
 import { ORDER_REPOSITORY } from './application/ports/order.repository.js';
@@ -27,6 +28,7 @@ import { AdminGuard } from '../shared/infrastructure/guards/admin.guard.js';
     CustomerModule,
     InventoryModule,
     AdminModule,
+    DiscountModule,
   ],
   controllers: [OrderController, OrderAdminController],
   providers: [

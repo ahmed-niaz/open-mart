@@ -38,7 +38,6 @@ export class GuestCustomerDto {
 }
 
 export class ShippingAddressDto {
-  @IsString()
   @Length(2, 100, {
     message: 'Recipient name must be between 2 and 100 characters',
   })
@@ -101,4 +100,8 @@ export class CreateOrderDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsString()
+  @IsOptional()
+  couponCode?: string;
 }

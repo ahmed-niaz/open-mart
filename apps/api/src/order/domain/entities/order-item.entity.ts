@@ -9,6 +9,7 @@ export interface OrderItemProps {
   productSku: string;
   unitPrice: Money;
   quantity: number;
+  discountAmount?: Money;
 }
 
 export class OrderItem {
@@ -18,6 +19,7 @@ export class OrderItem {
   private readonly _productSku: string;
   private readonly _unitPrice: Money;
   private readonly _quantity: number;
+  private _discountAmount: Money;
 
   private constructor(props: OrderItemProps) {
     this._id = props.id;
@@ -26,6 +28,8 @@ export class OrderItem {
     this._productSku = props.productSku;
     this._unitPrice = props.unitPrice;
     this._quantity = props.quantity;
+    this._discountAmount =
+      props.discountAmount ?? Money.zero(props.unitPrice.getCurrency());
   }
 
   static create(props: {
@@ -34,6 +38,7 @@ export class OrderItem {
     productSku: string;
     unitPrice: Money;
     quantity: number;
+    discountAmount?: Money;
   }): OrderItem {
     if (!props.productId || props.productId.trim().length === 0) {
       throw new DomainException('Product ID is required for order item');
@@ -59,6 +64,7 @@ export class OrderItem {
       productSku: props.productSku.trim(),
       unitPrice: props.unitPrice,
       quantity: props.quantity,
+      discountAmount: props.discountAmount,
     });
   }
 
@@ -90,7 +96,18 @@ export class OrderItem {
     return this._quantity;
   }
 
+  get discountAmount(): Money {
+    return this._discountAmount;
+  }
+
+  setDiscountAmount(amount: Money): void {
+    this._discountAmount = amount;
+  }
+
   getSubtotal(): Money {
-    return this._unitPrice.multiply(this._quantity);
+    const gross = this._unitPrice.multiply(this._quantity);
+    return gross.toCents() > this._discountAmount.toCents()
+      ? gross.subtract(this._discountAmount)
+      : Money.zero(gross.getCurrency());
   }
 }

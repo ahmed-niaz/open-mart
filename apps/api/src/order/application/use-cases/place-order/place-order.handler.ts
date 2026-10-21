@@ -15,6 +15,11 @@ import {
   type InventoryReservationPort,
 } from '../../../../inventory/application/ports/inventory-reservation.port.js';
 import {
+  DISCOUNT_CALCULATION_PORT,
+  type DiscountCalculationPort,
+  type CalculatedDiscountResult,
+} from '../../ports/discount-calculation.port.js';
+import {
   ApplicationException,
   ApplicationExceptionCode,
 } from '../../../../shared/domain/exceptions/application.exception.js';
@@ -35,6 +40,8 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
     private readonly productVerification: ProductVerificationPort,
     @Inject(INVENTORY_RESERVATION_PORT)
     private readonly inventoryReservationPort: InventoryReservationPort,
+    @Inject(DISCOUNT_CALCULATION_PORT)
+    private readonly discountCalculation: DiscountCalculationPort,
   ) {}
 
   async execute(command: PlaceOrderCommand): Promise<OrderResponseDto> {
@@ -48,8 +55,6 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
     const productIds = command.items.map((i) => i.productId);
     const productMap =
       await this.productVerification.getProductsByIds(productIds);
-
-    const orderItems: OrderItem[] = [];
 
     for (const itemInput of command.items) {
       const product = productMap.get(itemInput.productId);
@@ -66,11 +71,49 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
           ApplicationExceptionCode.VALIDATION_ERROR,
         );
       }
+    }
 
+    // Optional coupon discount calculation
+    let discountResult: CalculatedDiscountResult | null = null;
+    const customerIdentifier = command.customerId
+      ? command.customerId
+      : command.guestCustomer?.email ||
+        (command.shippingAddress as any)?.recipientPhone ||
+        'guest';
+
+    if (command.couponCode && command.couponCode.trim().length > 0) {
+      discountResult = await this.discountCalculation.calculate({
+        code: command.couponCode.trim(),
+        customerId: command.customerId,
+        guestEmail: command.guestCustomer?.email,
+        items: command.items.map((i) => {
+          const prod = productMap.get(i.productId)!;
+          return {
+            productId: prod.id,
+            categoryId: prod.categoryId,
+            unitPrice: prod.unitPriceAmount,
+            quantity: i.quantity,
+          };
+        }),
+        shippingFee: 0,
+      });
+    }
+
+    const orderItems: OrderItem[] = [];
+
+    for (const itemInput of command.items) {
+      const product = productMap.get(itemInput.productId)!;
       const unitPrice = Money.fromCents(
         product.unitPriceAmount,
         product.unitPriceCurrency,
       );
+
+      const allocated = discountResult?.allocatedLines.find(
+        (l) => l.productId === product.id,
+      );
+      const discountItemAmount = allocated
+        ? Money.fromCents(allocated.allocatedAmount, product.unitPriceCurrency)
+        : Money.zero(product.unitPriceCurrency);
 
       const item = OrderItem.create({
         productId: product.id,
@@ -78,6 +121,7 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
         productSku: product.sku,
         unitPrice,
         quantity: itemInput.quantity,
+        discountAmount: discountItemAmount,
       });
 
       orderItems.push(item);
@@ -85,24 +129,60 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
 
     const shippingAddress = ShippingAddress.create(command.shippingAddress);
 
+    const discountSnapshot = discountResult
+      ? {
+          code: discountResult.code,
+          type: discountResult.type,
+          amount: Money.fromCents(
+            discountResult.totalDiscountAmount,
+            orderItems[0].unitPrice.getCurrency(),
+          ),
+        }
+      : null;
+
     const order = Order.place(
       command.customerId,
       orderItems,
       shippingAddress,
       command.notes,
+      discountSnapshot,
     );
 
-    // Two-Phase Reservation: Atomically hold stock for the order (30 min TTL)
-    await this.inventoryReservationPort.reserveStock(
-      order.id.getValue(),
-      orderItems.map((i) => ({
-        sku: i.productSku,
-        quantity: i.quantity,
-      })),
-      30,
-    );
-
+    // Save initial order in pending state
     await this.orderRepository.save(order);
+
+    try {
+      // Two-phase discount reservation
+      if (discountResult) {
+        await this.discountCalculation.reserve(
+          discountResult.discountId,
+          order.id.getValue(),
+          command.customerId,
+          customerIdentifier,
+          discountResult.code,
+          discountResult.totalDiscountAmount,
+        );
+      }
+
+      // Two-Phase Reservation: Atomically hold stock for the order (30 min TTL)
+      await this.inventoryReservationPort.reserveStock(
+        order.id.getValue(),
+        orderItems.map((i) => ({
+          sku: i.productSku,
+          quantity: i.quantity,
+        })),
+        30,
+      );
+    } catch (error) {
+      if (discountResult) {
+        try {
+          await this.discountCalculation.release(order.id.getValue());
+        } catch {
+          // ignore rollback release errors
+        }
+      }
+      throw error;
+    }
 
     return OrderResponseDto.fromDomain(order);
   }

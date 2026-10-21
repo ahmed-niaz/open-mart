@@ -24,6 +24,9 @@ export interface OrderProps {
   deliveredAt: Date | null;
   cancelledAt: Date | null;
   cancellationReason: string | null;
+  discountCode?: string | null;
+  discountType?: string | null;
+  discountAmount?: Money | null;
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -42,6 +45,9 @@ export class Order extends AggregateRoot {
   private _deliveredAt: Date | null;
   private _cancelledAt: Date | null;
   private _cancellationReason: string | null;
+  private _discountCode: string | null;
+  private _discountType: string | null;
+  private _discountAmount: Money;
   private _version: number;
   private readonly _createdAt: Date;
   private _updatedAt: Date;
@@ -60,6 +66,13 @@ export class Order extends AggregateRoot {
     this._deliveredAt = props.deliveredAt;
     this._cancelledAt = props.cancelledAt;
     this._cancellationReason = props.cancellationReason;
+    this._discountCode = props.discountCode ?? null;
+    this._discountType = props.discountType ?? null;
+    this._discountAmount =
+      props.discountAmount ??
+      (props.items.length > 0
+        ? Money.zero(props.items[0].unitPrice.getCurrency())
+        : Money.zero('USD'));
     this._version = props.version;
     this._createdAt = props.createdAt;
     this._updatedAt = props.updatedAt;
@@ -70,6 +83,7 @@ export class Order extends AggregateRoot {
     items: OrderItem[],
     shippingAddress: ShippingAddress,
     notes?: string | null,
+    discountSnapshot?: { code: string; type: string; amount: Money } | null,
   ): Order {
     if (!items || items.length === 0) {
       throw new DomainException('An order must contain at least one item');
@@ -91,6 +105,9 @@ export class Order extends AggregateRoot {
       deliveredAt: null,
       cancelledAt: null,
       cancellationReason: null,
+      discountCode: discountSnapshot?.code ?? null,
+      discountType: discountSnapshot?.type ?? null,
+      discountAmount: discountSnapshot?.amount ?? null,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -270,6 +287,18 @@ export class Order extends AggregateRoot {
 
   get cancellationReason(): string | null {
     return this._cancellationReason;
+  }
+
+  get discountCode(): string | null {
+    return this._discountCode;
+  }
+
+  get discountType(): string | null {
+    return this._discountType;
+  }
+
+  get discountAmount(): Money {
+    return this._discountAmount;
   }
 
   get version(): number {

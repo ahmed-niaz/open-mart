@@ -29,6 +29,7 @@ export class ProductVerificationAdapter implements ProductVerificationPort {
         unitPriceAmount: productsSchema.unitPriceAmount,
         unitPriceCurrency: productsSchema.unitPriceCurrency,
         status: productsSchema.status,
+        categoryId: productsSchema.categoryId,
       })
       .from(productsSchema)
       .where(inArray(productsSchema.id, productIds));
@@ -42,6 +43,7 @@ export class ProductVerificationAdapter implements ProductVerificationPort {
         unitPriceAmount: row.unitPriceAmount,
         unitPriceCurrency: row.unitPriceCurrency,
         status: row.status,
+        categoryId: row.categoryId ?? null,
       });
     }
 

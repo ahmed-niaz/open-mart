@@ -6,6 +6,10 @@ import {
   ORDER_REPOSITORY,
   type OrderRepositoryPort,
 } from '../../ports/order.repository.js';
+import {
+  DISCOUNT_CALCULATION_PORT,
+  type DiscountCalculationPort,
+} from '../../ports/discount-calculation.port.js';
 import { OrderId } from '../../../domain/value-objects/order-id.vo.js';
 import {
   ApplicationException,
@@ -20,6 +24,8 @@ export class CancelOrderCommandHandler implements ICommandHandler<
   constructor(
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: OrderRepositoryPort,
+    @Inject(DISCOUNT_CALCULATION_PORT)
+    private readonly discountCalculation: DiscountCalculationPort,
   ) {}
 
   async execute(command: CancelOrderCommand): Promise<OrderResponseDto> {
@@ -51,6 +57,14 @@ export class CancelOrderCommandHandler implements ICommandHandler<
 
     order.cancel(command.reason);
     await this.orderRepository.save(order);
+
+    if (order.discountCode) {
+      try {
+        await this.discountCalculation.release(order.id.getValue());
+      } catch {
+        // non-blocking if already released
+      }
+    }
 
     return OrderResponseDto.fromDomain(order);
   }

@@ -16,6 +16,9 @@ export class OrderResponseDto {
   courierName!: string | null;
   trackingNumber!: string | null;
   notes!: string | null;
+  discountCode!: string | null;
+  discountType!: string | null;
+  discountAmount!: number;
   shippedAt!: string | null;
   deliveredAt!: string | null;
   cancelledAt!: string | null;
@@ -50,6 +53,9 @@ export class OrderResponseDto {
     dto.courierName = orderRow.courierName;
     dto.trackingNumber = orderRow.trackingNumber;
     dto.notes = orderRow.notes;
+    dto.discountCode = orderRow.discountCode;
+    dto.discountType = orderRow.discountType;
+    dto.discountAmount = orderRow.discountAmount ?? 0;
     dto.shippedAt = orderRow.shippedAt
       ? orderRow.shippedAt.toISOString()
       : null;
@@ -80,6 +86,9 @@ export class OrderResponseDto {
     dto.courierName = order.courierName;
     dto.trackingNumber = order.trackingNumber;
     dto.notes = order.notes;
+    dto.discountCode = order.discountCode;
+    dto.discountType = order.discountType;
+    dto.discountAmount = order.discountAmount.toCents();
     dto.shippedAt = order.shippedAt ? order.shippedAt.toISOString() : null;
     dto.deliveredAt = order.deliveredAt
       ? order.deliveredAt.toISOString()

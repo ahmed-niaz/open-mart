@@ -5,6 +5,7 @@ export interface VerifiedProductData {
   unitPriceAmount: number; // in cents
   unitPriceCurrency: string;
   status: string;
+  categoryId?: string | null;
 }
 
 export const PRODUCT_VERIFICATION_PORT = Symbol('PRODUCT_VERIFICATION_PORT');

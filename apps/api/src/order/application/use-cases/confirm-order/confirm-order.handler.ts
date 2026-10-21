@@ -6,6 +6,10 @@ import {
   ORDER_REPOSITORY,
   type OrderRepositoryPort,
 } from '../../ports/order.repository.js';
+import {
+  DISCOUNT_CALCULATION_PORT,
+  type DiscountCalculationPort,
+} from '../../ports/discount-calculation.port.js';
 import { OrderId } from '../../../domain/value-objects/order-id.vo.js';
 import {
   ApplicationException,
@@ -20,6 +24,8 @@ export class ConfirmOrderCommandHandler implements ICommandHandler<
   constructor(
     @Inject(ORDER_REPOSITORY)
     private readonly orderRepository: OrderRepositoryPort,
+    @Inject(DISCOUNT_CALCULATION_PORT)
+    private readonly discountCalculation: DiscountCalculationPort,
   ) {}
 
   async execute(command: ConfirmOrderCommand): Promise<OrderResponseDto> {
@@ -39,6 +45,10 @@ export class ConfirmOrderCommandHandler implements ICommandHandler<
 
     order.confirm();
     await this.orderRepository.save(order);
+
+    if (order.discountCode) {
+      await this.discountCalculation.confirm(order.id.getValue());
+    }
 
     return OrderResponseDto.fromDomain(order);
   }

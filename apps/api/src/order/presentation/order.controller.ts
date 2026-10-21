@@ -86,6 +86,7 @@ export class OrderController {
         key,
         user ? null : (dto.customer ?? null),
         dto.notes,
+        dto.couponCode,
       ),
     );
     return { data: result };
