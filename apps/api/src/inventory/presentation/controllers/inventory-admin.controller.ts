@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 
@@ -25,8 +26,15 @@ import { AdjustStockDto } from '../dto/adjust-stock.dto.js';
 import { StocktakeDto } from '../dto/stocktake.dto.js';
 import { UpdateSettingsDto } from '../dto/update-settings.dto.js';
 import { ListInventoryQueryDto } from '../dto/list-inventory-query.dto.js';
+import { AdminJwtGuard } from '../../../shared/infrastructure/guards/admin-jwt.guard.js';
+import { PermissionsGuard } from '../../../shared/infrastructure/guards/permissions.guard.js';
+import { RequirePermissions } from '../../../shared/presentation/decorators/require-permissions.decorator.js';
+import { CurrentAdmin } from '../../../shared/presentation/decorators/current-admin.decorator.js';
+import { AdminPermission } from '../../../shared/infrastructure/guards/admin-permissions.js';
+import type { AuthenticatedUser } from '../../../shared/presentation/interfaces/authenticated-user.interface.js';
 
 @Controller('admin/inventory')
+@UseGuards(AdminJwtGuard, PermissionsGuard)
 export class InventoryAdminController {
   constructor(
     private readonly commandBus: CommandBus,
@@ -38,6 +46,7 @@ export class InventoryAdminController {
    * Paginated warehouse stock list with status filters (low_stock, out_of_stock).
    */
   @Get()
+  @RequirePermissions(AdminPermission.INVENTORY_READ)
   async listInventory(@Query() query: ListInventoryQueryDto) {
     const result = await this.queryBus.execute(
       new ListInventoryQuery(
@@ -55,6 +64,7 @@ export class InventoryAdminController {
    * Detailed stock breakdown for a specific SKU.
    */
   @Get(':sku')
+  @RequirePermissions(AdminPermission.INVENTORY_READ)
   async getInventoryBySku(@Param('sku') sku: string) {
     const result = await this.queryBus.execute(new GetInventoryBySkuQuery(sku));
     return { data: result };
@@ -65,6 +75,7 @@ export class InventoryAdminController {
    * Immutable movement ledger / audit history for a SKU.
    */
   @Get(':sku/movements')
+  @RequirePermissions(AdminPermission.INVENTORY_READ)
   async getInventoryMovements(
     @Param('sku') sku: string,
     @Query('page') page: number = 1,
@@ -82,9 +93,11 @@ export class InventoryAdminController {
    * Requires X-Idempotency-Key.
    */
   @Post('restock')
+  @RequirePermissions(AdminPermission.INVENTORY_RESTOCK)
   @HttpCode(HttpStatus.OK)
   async restock(
     @Body() dto: RestockDto,
+    @CurrentAdmin() admin: AuthenticatedUser,
     @Headers('x-idempotency-key') idempotencyKey?: string,
   ) {
     const key = idempotencyKey?.trim();
@@ -95,7 +108,7 @@ export class InventoryAdminController {
     }
 
     const result = await this.commandBus.execute(
-      new RestockCommand(dto.sku, dto.quantity, 'admin', dto.note),
+      new RestockCommand(dto.sku, dto.quantity, admin.id, dto.note),
     );
     return { data: result };
   }
@@ -106,9 +119,11 @@ export class InventoryAdminController {
    * Requires X-Idempotency-Key.
    */
   @Post('adjust')
+  @RequirePermissions(AdminPermission.INVENTORY_ADJUST)
   @HttpCode(HttpStatus.OK)
   async adjustStock(
     @Body() dto: AdjustStockDto,
+    @CurrentAdmin() admin: AuthenticatedUser,
     @Headers('x-idempotency-key') idempotencyKey?: string,
   ) {
     const key = idempotencyKey?.trim();
@@ -119,7 +134,13 @@ export class InventoryAdminController {
     }
 
     const result = await this.commandBus.execute(
-      new AdjustStockCommand(dto.sku, dto.delta, dto.reason, 'admin', dto.note),
+      new AdjustStockCommand(
+        dto.sku,
+        dto.delta,
+        dto.reason,
+        admin.id,
+        dto.note,
+      ),
     );
     return { data: result };
   }
@@ -129,10 +150,14 @@ export class InventoryAdminController {
    * Physical warehouse count recount.
    */
   @Post('stocktake')
+  @RequirePermissions(AdminPermission.INVENTORY_STOCKTAKE)
   @HttpCode(HttpStatus.OK)
-  async stocktake(@Body() dto: StocktakeDto) {
+  async stocktake(
+    @Body() dto: StocktakeDto,
+    @CurrentAdmin() admin: AuthenticatedUser,
+  ) {
     const result = await this.commandBus.execute(
-      new StocktakeCommand(dto.sku, dto.countedQuantity, 'admin', dto.note),
+      new StocktakeCommand(dto.sku, dto.countedQuantity, admin.id, dto.note),
     );
     return { data: result };
   }
@@ -142,6 +167,7 @@ export class InventoryAdminController {
    * Update administrative threshold and active status.
    */
   @Patch(':sku/settings')
+  @RequirePermissions(AdminPermission.INVENTORY_SETTINGS)
   async updateSettings(
     @Param('sku') sku: string,
     @Body() dto: UpdateSettingsDto,

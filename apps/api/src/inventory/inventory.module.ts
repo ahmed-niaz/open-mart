@@ -35,9 +35,11 @@ import { LedgerAuditJob } from './infrastructure/jobs/ledger-audit.job.js';
 
 import { InventoryPublicController } from './presentation/controllers/inventory-public.controller.js';
 import { InventoryAdminController } from './presentation/controllers/inventory-admin.controller.js';
+import { AdminModule } from '../admin/admin.module.js';
+import { NotificationModule } from '../notification/notification.module.js';
 
 @Module({
-  imports: [CqrsModule, ConfigModule],
+  imports: [CqrsModule, ConfigModule, AdminModule, NotificationModule],
   controllers: [InventoryPublicController, InventoryAdminController],
   providers: [
     {

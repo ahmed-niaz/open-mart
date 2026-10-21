@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
@@ -7,6 +7,7 @@ import { TOKEN_SERVICE_PORT } from '../../application/ports/token-service.port.j
 import { BcryptPasswordHasherAdapter } from './bcrypt-password-hasher.adapter.js';
 import { JwtTokenServiceAdapter } from './jwt-token-service.adapter.js';
 
+@Global()
 @Module({
   imports: [ConfigModule, JwtModule.register({})],
   providers: [

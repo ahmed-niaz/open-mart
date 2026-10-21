@@ -24,7 +24,8 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "seed:admin": "nest start --entryFile admin/infrastructure/seeders/seed-admin.cli"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",
