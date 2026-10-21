@@ -79,6 +79,7 @@ export const ordersSchema = pgTable(
     index('orders_customer_id_idx').on(table.customerId),
     index('orders_status_idx').on(table.status),
     index('orders_created_at_idx').on(table.createdAt),
+    index('orders_created_at_status_idx').on(table.createdAt, table.status),
   ],
 );
 
@@ -106,6 +107,7 @@ export const orderItemsSchema = pgTable(
   (table) => [
     index('order_items_order_id_idx').on(table.orderId),
     index('order_items_product_id_idx').on(table.productId),
+    index('order_items_order_product_idx').on(table.orderId, table.productId),
   ],
 );
 

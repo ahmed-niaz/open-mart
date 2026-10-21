@@ -28,7 +28,10 @@ describe('Admin Permission Matrix Tests', () => {
     expect(adminPerms.has(AdminPermission.INVENTORY_SETTINGS)).toBe(true);
     expect(adminPerms.has(AdminPermission.ORDERS_FULFILL)).toBe(true);
     expect(adminPerms.has(AdminPermission.CUSTOMERS_DEACTIVATE)).toBe(true);
+    expect(adminPerms.has(AdminPermission.CUSTOMERS_READ_PII)).toBe(true);
     expect(adminPerms.has(AdminPermission.AUDIT_READ)).toBe(true);
+    expect(adminPerms.has(AdminPermission.ANALYTICS_READ)).toBe(true);
+    expect(adminPerms.has(AdminPermission.ANALYTICS_FINANCIAL_READ)).toBe(true);
 
     // Cannot modify system-level configurations
     expect(adminPerms.has(AdminPermission.SYSTEM_SETTINGS)).toBe(false);
@@ -45,13 +48,18 @@ describe('Admin Permission Matrix Tests', () => {
     expect(managerPerms.has(AdminPermission.ORDERS_READ)).toBe(true);
     expect(managerPerms.has(AdminPermission.ORDERS_FULFILL)).toBe(true);
     expect(managerPerms.has(AdminPermission.CUSTOMERS_READ)).toBe(true);
+    expect(managerPerms.has(AdminPermission.ANALYTICS_READ)).toBe(true);
 
     // Forbidden for manager:
     expect(managerPerms.has(AdminPermission.STAFF_READ)).toBe(false);
     expect(managerPerms.has(AdminPermission.STAFF_CREATE)).toBe(false);
     expect(managerPerms.has(AdminPermission.INVENTORY_SETTINGS)).toBe(false);
     expect(managerPerms.has(AdminPermission.CUSTOMERS_DEACTIVATE)).toBe(false);
+    expect(managerPerms.has(AdminPermission.CUSTOMERS_READ_PII)).toBe(false);
     expect(managerPerms.has(AdminPermission.AUDIT_READ)).toBe(false);
+    expect(managerPerms.has(AdminPermission.ANALYTICS_FINANCIAL_READ)).toBe(
+      false,
+    );
     expect(managerPerms.has(AdminPermission.SYSTEM_SETTINGS)).toBe(false);
   });
 
@@ -64,6 +72,7 @@ describe('Admin Permission Matrix Tests', () => {
     expect(supportPerms.has(AdminPermission.ORDERS_CANCEL)).toBe(true);
     expect(supportPerms.has(AdminPermission.ORDERS_RETURN)).toBe(true);
     expect(supportPerms.has(AdminPermission.CUSTOMERS_READ)).toBe(true);
+    expect(supportPerms.has(AdminPermission.ANALYTICS_READ)).toBe(true);
 
     // Forbidden for support:
     expect(supportPerms.has(AdminPermission.PRODUCTS_WRITE)).toBe(false);
@@ -75,7 +84,11 @@ describe('Admin Permission Matrix Tests', () => {
     expect(supportPerms.has(AdminPermission.ORDERS_FULFILL)).toBe(false);
     expect(supportPerms.has(AdminPermission.STAFF_READ)).toBe(false);
     expect(supportPerms.has(AdminPermission.STAFF_CREATE)).toBe(false);
+    expect(supportPerms.has(AdminPermission.CUSTOMERS_READ_PII)).toBe(false);
     expect(supportPerms.has(AdminPermission.AUDIT_READ)).toBe(false);
+    expect(supportPerms.has(AdminPermission.ANALYTICS_FINANCIAL_READ)).toBe(
+      false,
+    );
     expect(supportPerms.has(AdminPermission.SYSTEM_SETTINGS)).toBe(false);
   });
 });

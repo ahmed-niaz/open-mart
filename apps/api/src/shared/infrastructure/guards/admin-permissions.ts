@@ -36,7 +36,12 @@ export enum AdminPermission {
 
   // Customer Moderation
   CUSTOMERS_READ = 'customers:read',
+  CUSTOMERS_READ_PII = 'customers:read_pii',
   CUSTOMERS_DEACTIVATE = 'customers:deactivate',
+
+  // Business Analytics & Reporting
+  ANALYTICS_READ = 'analytics:read',
+  ANALYTICS_FINANCIAL_READ = 'analytics:financial_read',
 
   // System & Auditing
   AUDIT_READ = 'audit:read',
@@ -70,8 +75,11 @@ export const ROLE_PERMISSIONS_MAP: Record<
     AdminPermission.ORDERS_CANCEL,
     AdminPermission.ORDERS_RETURN,
     AdminPermission.CUSTOMERS_READ,
+    AdminPermission.CUSTOMERS_READ_PII,
     AdminPermission.CUSTOMERS_DEACTIVATE,
     AdminPermission.AUDIT_READ,
+    AdminPermission.ANALYTICS_READ,
+    AdminPermission.ANALYTICS_FINANCIAL_READ,
   ]),
 
   // manager manages catalog, stock replenishment, and order fulfillment
@@ -84,9 +92,10 @@ export const ROLE_PERMISSIONS_MAP: Record<
     AdminPermission.ORDERS_READ,
     AdminPermission.ORDERS_FULFILL,
     AdminPermission.CUSTOMERS_READ,
+    AdminPermission.ANALYTICS_READ,
   ]),
 
-  // support has read-only catalog/stock and policy-bounded order actions
+  // support has read-only catalog/stock, policy-bounded order actions, and operational analytics
   support: new Set([
     AdminPermission.PRODUCTS_READ,
     AdminPermission.INVENTORY_READ,
@@ -94,5 +103,6 @@ export const ROLE_PERMISSIONS_MAP: Record<
     AdminPermission.ORDERS_CANCEL,
     AdminPermission.ORDERS_RETURN,
     AdminPermission.CUSTOMERS_READ,
+    AdminPermission.ANALYTICS_READ,
   ]),
 };

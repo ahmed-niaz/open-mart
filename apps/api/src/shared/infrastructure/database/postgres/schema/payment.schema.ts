@@ -76,6 +76,7 @@ export const paymentsSchema = pgTable(
     index('payments_order_id_idx').on(table.orderId),
     index('payments_transaction_id_idx').on(table.transactionId),
     index('payments_status_idx').on(table.status),
+    index('payments_status_paid_at_idx').on(table.status, table.paidAt),
     // Partial unique index: only 1 active payment attempt per order at any time
     uniqueIndex('payments_order_active_idx')
       .on(table.orderId)

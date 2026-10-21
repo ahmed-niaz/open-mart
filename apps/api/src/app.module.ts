@@ -15,6 +15,7 @@ import { OrderModule } from './order/order.module.js';
 import { PaymentModule } from './payment/payment.module.js';
 import { InventoryModule } from './inventory/inventory.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { AnalyticsModule } from './analytics/analytics.module.js';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AdminModule } from './admin/admin.module.js';
     PaymentModule,
     InventoryModule,
     AdminModule,
+    AnalyticsModule,
   ],
   controllers: [],
   providers: [

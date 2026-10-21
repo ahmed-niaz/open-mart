@@ -57,6 +57,13 @@
       "when": 1792555959243,
       "tag": "0007_green_white_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792560614062,
+      "tag": "0008_silly_karen_page",
+      "breakpoints": true
     }
   ]
 }
