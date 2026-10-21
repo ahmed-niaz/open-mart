@@ -110,6 +110,12 @@ export class DrizzleOrderRepository implements OrderRepositoryPort {
           .update(ordersSchema)
           .set({
             status: order.status.getValue(),
+            subtotalAmount: order.getSubtotalAmount().toCents(),
+            shippingFeeAmount: order.getShippingFeeAmount().toCents(),
+            shippingFeeDiscountAmount: order
+              .getShippingFeeDiscountAmount()
+              .toCents(),
+            taxAmount: order.getTaxAmount().toCents(),
             totalAmount: order.getTotalAmount().toCents(),
             totalCurrency: order.getTotalAmount().getCurrency(),
             recipientName: addr.recipientName,
@@ -242,6 +248,21 @@ export class DrizzleOrderRepository implements OrderRepositoryPort {
       discountAmount: orderRow.discountAmount
         ? Money.fromCents(orderRow.discountAmount, orderRow.totalCurrency)
         : Money.zero(orderRow.totalCurrency),
+      subtotalAmount: orderRow.subtotalAmount
+        ? Money.fromCents(orderRow.subtotalAmount, orderRow.totalCurrency)
+        : Money.zero(orderRow.totalCurrency),
+      shippingFeeAmount: orderRow.shippingFeeAmount
+        ? Money.fromCents(orderRow.shippingFeeAmount, orderRow.totalCurrency)
+        : Money.zero(orderRow.totalCurrency),
+      shippingFeeDiscountAmount: orderRow.shippingFeeDiscountAmount
+        ? Money.fromCents(
+            orderRow.shippingFeeDiscountAmount,
+            orderRow.totalCurrency,
+          )
+        : Money.zero(orderRow.totalCurrency),
+      taxAmount: orderRow.taxAmount
+        ? Money.fromCents(orderRow.taxAmount, orderRow.totalCurrency)
+        : Money.zero(orderRow.totalCurrency),
       version: orderRow.version,
       createdAt: orderRow.createdAt,
       updatedAt: orderRow.updatedAt,
@@ -254,6 +275,10 @@ export class DrizzleOrderRepository implements OrderRepositoryPort {
       id: order.id.getValue(),
       customerId: order.customerId,
       status: order.status.getValue(),
+      subtotalAmount: order.getSubtotalAmount().toCents(),
+      shippingFeeAmount: order.getShippingFeeAmount().toCents(),
+      shippingFeeDiscountAmount: order.getShippingFeeDiscountAmount().toCents(),
+      taxAmount: order.getTaxAmount().toCents(),
       totalAmount: order.getTotalAmount().toCents(),
       totalCurrency: order.getTotalAmount().getCurrency(),
       recipientName: addr.recipientName,

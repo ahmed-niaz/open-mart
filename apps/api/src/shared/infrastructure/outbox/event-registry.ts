@@ -10,6 +10,9 @@ import { PaymentCompletedEvent } from '../../../payment/domain/events/payment-co
 import { PaymentFailedEvent } from '../../../payment/domain/events/payment-failed.event.js';
 import { PaymentCancelledEvent } from '../../../payment/domain/events/payment-cancelled.event.js';
 import { PaymentNeedsReviewEvent } from '../../../payment/domain/events/payment-needs-review.event.js';
+import { PaymentRefundInitiatedEvent } from '../../../payment/domain/events/payment-refund-initiated.event.js';
+import { PaymentRefundedEvent } from '../../../payment/domain/events/payment-refunded.event.js';
+import { PaymentRefundFailedEvent } from '../../../payment/domain/events/payment-refund-failed.event.js';
 
 import { PaymentCancelledIntegrationEvent } from '../../contracts/events/payment-cancelled.event.js';
 import { PaymentCompletedIntegrationEvent } from '../../contracts/events/payment-completed.event.js';
@@ -29,6 +32,15 @@ import { DiscountRedeemedEvent } from '../../../discount/domain/events/discount-
 import { DiscountReleasedEvent } from '../../../discount/domain/events/discount-released.event.js';
 import { DiscountStatusChangedEvent } from '../../../discount/domain/events/discount-status-changed.event.js';
 
+import { CartCreatedEvent } from '../../../cart/domain/events/cart-created.event.js';
+import { CartItemAddedEvent } from '../../../cart/domain/events/cart-item-added.event.js';
+import { CartItemUpdatedEvent } from '../../../cart/domain/events/cart-item-updated.event.js';
+import { CartItemRemovedEvent } from '../../../cart/domain/events/cart-item-removed.event.js';
+import { CartClearedEvent } from '../../../cart/domain/events/cart-cleared.event.js';
+import { CartMergedEvent } from '../../../cart/domain/events/cart-merged.event.js';
+import { CartConvertedEvent } from '../../../cart/domain/events/cart-converted.event.js';
+import { CartAbandonedEvent } from '../../../cart/domain/events/cart-abandoned.event.js';
+
 export const EVENT_REGISTRY: Record<string, new (...args: any[]) => any> = {
   OrderPlacedEvent,
   OrderConfirmedEvent,
@@ -42,6 +54,9 @@ export const EVENT_REGISTRY: Record<string, new (...args: any[]) => any> = {
   PaymentFailedEvent,
   PaymentCancelledEvent,
   PaymentNeedsReviewEvent,
+  PaymentRefundInitiatedEvent,
+  PaymentRefundedEvent,
+  PaymentRefundFailedEvent,
 
   PaymentCancelledIntegrationEvent,
   PaymentCompletedIntegrationEvent,
@@ -60,6 +75,15 @@ export const EVENT_REGISTRY: Record<string, new (...args: any[]) => any> = {
   DiscountRedeemedEvent,
   DiscountReleasedEvent,
   DiscountStatusChangedEvent,
+
+  CartCreatedEvent,
+  CartItemAddedEvent,
+  CartItemUpdatedEvent,
+  CartItemRemovedEvent,
+  CartClearedEvent,
+  CartMergedEvent,
+  CartConvertedEvent,
+  CartAbandonedEvent,
 };
 
 export function deserializeOutboxEvent(

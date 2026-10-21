@@ -51,4 +51,3 @@ export type OutboxMessageSelectRow = typeof outboxMessagesSchema.$inferSelect;
 export type OutboxMessageInsertRow = typeof outboxMessagesSchema.$inferInsert;
 export type ProcessedEventSelectRow = typeof processedEventsSchema.$inferSelect;
 export type ProcessedEventInsertRow = typeof processedEventsSchema.$inferInsert;
-

@@ -17,6 +17,7 @@ import { InventoryModule } from './inventory/inventory.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { DiscountModule } from './discount/discount.module.js';
+import { CartModule } from './cart/cart.module.js';
 import { OutboxModule } from './shared/infrastructure/outbox/outbox.module.js';
 import { IdempotencyModule } from './shared/infrastructure/idempotency/idempotency.module.js';
 
@@ -50,6 +51,7 @@ import { IdempotencyModule } from './shared/infrastructure/idempotency/idempoten
     AdminModule,
     AnalyticsModule,
     DiscountModule,
+    CartModule,
     OutboxModule,
     IdempotencyModule,
   ],

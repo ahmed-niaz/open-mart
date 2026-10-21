@@ -5,6 +5,9 @@ import { OrderId } from '../value-objects/order-id.vo.js';
 import { OrderStatus } from '../value-objects/order-status.vo.js';
 import { ShippingAddress } from '../value-objects/shipping-address.vo.js';
 import { OrderItem } from './order-item.entity.js';
+import { ShippingFeeCalculator } from '../services/shipping-fee-calculator.service.js';
+import { VatCalculator } from '../services/vat-calculator.service.js';
+import { PriceSnapshot } from '../value-objects/price-snapshot.vo.js';
 import { OrderPlacedEvent } from '../events/order-placed.event.js';
 import { OrderConfirmedEvent } from '../events/order-confirmed.event.js';
 import { OrderShippedEvent } from '../events/order-shipped.event.js';
@@ -27,6 +30,10 @@ export interface OrderProps {
   discountCode?: string | null;
   discountType?: string | null;
   discountAmount?: Money | null;
+  subtotalAmount?: Money | null;
+  shippingFeeAmount?: Money | null;
+  shippingFeeDiscountAmount?: Money | null;
+  taxAmount?: Money | null;
   version: number;
   createdAt: Date;
   updatedAt: Date;
@@ -48,6 +55,10 @@ export class Order extends AggregateRoot {
   private _discountCode: string | null;
   private _discountType: string | null;
   private _discountAmount: Money;
+  private readonly _subtotalAmount: Money;
+  private readonly _shippingFeeAmount: Money;
+  private readonly _shippingFeeDiscountAmount: Money;
+  private readonly _taxAmount: Money;
   private _version: number;
   private readonly _createdAt: Date;
   private _updatedAt: Date;
@@ -68,11 +79,22 @@ export class Order extends AggregateRoot {
     this._cancellationReason = props.cancellationReason;
     this._discountCode = props.discountCode ?? null;
     this._discountType = props.discountType ?? null;
-    this._discountAmount =
-      props.discountAmount ??
-      (props.items.length > 0
-        ? Money.zero(props.items[0].unitPrice.getCurrency())
-        : Money.zero('USD'));
+
+    const currency =
+      props.items.length > 0 ? props.items[0].unitPrice.getCurrency() : 'USD';
+
+    const calculatedSubtotal = props.items.reduce(
+      (acc, item) => acc.add(item.getSubtotal()),
+      Money.zero(currency),
+    );
+
+    this._subtotalAmount = props.subtotalAmount ?? calculatedSubtotal;
+    this._discountAmount = props.discountAmount ?? Money.zero(currency);
+    this._shippingFeeAmount = props.shippingFeeAmount ?? Money.zero(currency);
+    this._shippingFeeDiscountAmount =
+      props.shippingFeeDiscountAmount ?? Money.zero(currency);
+    this._taxAmount = props.taxAmount ?? Money.zero(currency);
+
     this._version = props.version;
     this._createdAt = props.createdAt;
     this._updatedAt = props.updatedAt;
@@ -84,6 +106,8 @@ export class Order extends AggregateRoot {
     shippingAddress: ShippingAddress,
     notes?: string | null,
     discountSnapshot?: { code: string; type: string; amount: Money } | null,
+    shippingFee?: Money | null,
+    shippingFeeDiscount?: Money | null,
   ): Order {
     if (!items || items.length === 0) {
       throw new DomainException('An order must contain at least one item');
@@ -91,6 +115,30 @@ export class Order extends AggregateRoot {
 
     const now = new Date();
     const id = OrderId.generate();
+    const currency = items[0].unitPrice.getCurrency();
+
+    const subtotal = items.reduce(
+      (acc, item) => acc.add(item.getSubtotal()),
+      Money.zero(currency),
+    );
+
+    const resolvedShippingFee =
+      shippingFee ??
+      ShippingFeeCalculator.calculate({
+        address: shippingAddress,
+        subtotalAmount: subtotal,
+      });
+
+    const resolvedShippingFeeDiscount =
+      shippingFeeDiscount ?? Money.zero(currency);
+
+    const discountAmount = discountSnapshot?.amount ?? Money.zero(currency);
+
+    // Bangladesh VAT backed out from taxable items (subtotal - item/order discount)
+    const netTaxable = subtotal.subtract(discountAmount);
+    const taxAmount = VatCalculator.calculateBackedOutVat(
+      netTaxable.toCents() > 0 ? netTaxable : Money.zero(currency),
+    );
 
     const order = new Order({
       id,
@@ -107,7 +155,11 @@ export class Order extends AggregateRoot {
       cancellationReason: null,
       discountCode: discountSnapshot?.code ?? null,
       discountType: discountSnapshot?.type ?? null,
-      discountAmount: discountSnapshot?.amount ?? null,
+      discountAmount,
+      subtotalAmount: subtotal,
+      shippingFeeAmount: resolvedShippingFee,
+      shippingFeeDiscountAmount: resolvedShippingFeeDiscount,
+      taxAmount,
       version: 1,
       createdAt: now,
       updatedAt: now,
@@ -225,16 +277,48 @@ export class Order extends AggregateRoot {
     this._updatedAt = new Date();
   }
 
-  getTotalAmount(): Money {
-    if (this._items.length === 0) {
-      return Money.zero('USD');
-    }
+  getSubtotalAmount(): Money {
+    return this._subtotalAmount;
+  }
 
-    const currency = this._items[0].unitPrice.getCurrency();
-    return this._items.reduce(
-      (acc, item) => acc.add(item.getSubtotal()),
-      Money.zero(currency),
+  getShippingFeeAmount(): Money {
+    return this._shippingFeeAmount;
+  }
+
+  getShippingFeeDiscountAmount(): Money {
+    return this._shippingFeeDiscountAmount;
+  }
+
+  getNetShippingAmount(): Money {
+    const net = this._shippingFeeAmount.subtract(
+      this._shippingFeeDiscountAmount,
     );
+    return net.toCents() < 0
+      ? Money.zero(this._shippingFeeAmount.getCurrency())
+      : net;
+  }
+
+  getTaxAmount(): Money {
+    return this._taxAmount;
+  }
+
+  getTotalAmount(): Money {
+    const currency = this._subtotalAmount.getCurrency();
+    const afterDiscount = this._subtotalAmount.subtract(this._discountAmount);
+    const positiveAfterDiscount =
+      afterDiscount.toCents() < 0 ? Money.zero(currency) : afterDiscount;
+    return positiveAfterDiscount.add(this.getNetShippingAmount());
+  }
+
+  getPriceSnapshot(): PriceSnapshot {
+    return PriceSnapshot.create({
+      subtotal: this._subtotalAmount,
+      discountAmount: this._discountAmount,
+      shippingFee: this._shippingFeeAmount,
+      shippingFeeDiscount: this._shippingFeeDiscountAmount,
+      taxAmount: this._taxAmount,
+      total: this.getTotalAmount(),
+    });
   }
 
   getItemCount(): number {

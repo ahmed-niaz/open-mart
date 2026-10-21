@@ -31,4 +31,3 @@ export const idempotencyKeysSchema = pgTable(
 
 export type IdempotencyKeySelectRow = typeof idempotencyKeysSchema.$inferSelect;
 export type IdempotencyKeyInsertRow = typeof idempotencyKeysSchema.$inferInsert;
-

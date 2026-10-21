@@ -13,4 +13,3 @@ import { DrizzleModule } from '../database/postgres/drizzle.module.js';
   exports: [OutboxService, EventDeduplicationService],
 })
 export class OutboxModule {}
-

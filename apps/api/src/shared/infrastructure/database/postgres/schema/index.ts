@@ -8,3 +8,4 @@ export * from './admin.schema.js';
 export * from './discount.schema.js';
 export * from './outbox.schema.js';
 export * from './idempotency.schema.js';
+export * from './cart.schema.js';

@@ -7,8 +7,10 @@ export const PAYMENT_TXN_STATUSES = [
   'failed',
   'cancelled',
   'needs_review',
+  'refund_pending',
   'refunded',
   'partially_refunded',
+  'refund_failed',
 ] as const;
 
 export type PaymentTxnStatusValue = (typeof PAYMENT_TXN_STATUSES)[number];
@@ -19,12 +21,19 @@ const ALLOWED_TRANSITIONS: Record<
 > = {
   pending: ['processing', 'completed', 'failed', 'cancelled', 'needs_review'],
   processing: ['completed', 'failed', 'cancelled', 'needs_review'],
-  completed: ['refunded', 'partially_refunded'],
+  completed: ['refund_pending', 'refunded', 'partially_refunded'],
   failed: [],
   cancelled: [],
   needs_review: ['completed', 'refunded', 'cancelled'],
+  refund_pending: [
+    'refunded',
+    'partially_refunded',
+    'refund_failed',
+    'completed',
+  ],
   refunded: [],
-  partially_refunded: ['refunded', 'partially_refunded'],
+  partially_refunded: ['refund_pending', 'refunded', 'partially_refunded'],
+  refund_failed: ['refund_pending', 'completed'],
 };
 
 export class PaymentStatus {
@@ -76,6 +85,14 @@ export class PaymentStatus {
     return new PaymentStatus('partially_refunded');
   }
 
+  static refundPending(): PaymentStatus {
+    return new PaymentStatus('refund_pending');
+  }
+
+  static refundFailed(): PaymentStatus {
+    return new PaymentStatus('refund_failed');
+  }
+
   getValue(): PaymentTxnStatusValue {
     return this.value;
   }
@@ -119,6 +136,14 @@ export class PaymentStatus {
 
   isRefunded(): boolean {
     return this.value === 'refunded' || this.value === 'partially_refunded';
+  }
+
+  isRefundPending(): boolean {
+    return this.value === 'refund_pending';
+  }
+
+  isRefundFailed(): boolean {
+    return this.value === 'refund_failed';
   }
 
   isTerminal(): boolean {

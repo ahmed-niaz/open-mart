@@ -78,6 +78,20 @@
       "when": 1792592515391,
       "tag": "0010_cloudy_paladin",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792597111788,
+      "tag": "0011_material_bill_hollister",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792600185499,
+      "tag": "0012_parched_payback",
+      "breakpoints": true
     }
   ]
 }

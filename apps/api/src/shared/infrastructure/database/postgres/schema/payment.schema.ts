@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -21,8 +22,10 @@ export const PAYMENT_TXN_STATUSES = [
   'failed',
   'cancelled',
   'needs_review',
+  'refund_pending',
   'refunded',
   'partially_refunded',
+  'refund_failed',
 ] as const;
 
 export type PaymentTxnStatusValue = (typeof PAYMENT_TXN_STATUSES)[number];
@@ -104,7 +107,38 @@ export const paymentWebhookEventsSchema = pgTable(
   ],
 );
 
-export const paymentsRelations = relations(paymentsSchema, ({ one }) => ({
+export const paymentRefundsSchema = pgTable(
+  'payment_refunds',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    paymentId: uuid('payment_id')
+      .notNull()
+      .references(() => paymentsSchema.id, { onDelete: 'restrict' }),
+    orderId: uuid('order_id')
+      .notNull()
+      .references(() => ordersSchema.id, { onDelete: 'restrict' }),
+    amount: integer('amount').notNull(), // minor units / poisha
+    currency: varchar('currency', { length: 3 }).notNull().default('USD'),
+    reason: text('reason').notNull(),
+    status: varchar('status', { length: 30 }).notNull().default('pending'), // 'pending' | 'completed' | 'failed'
+    gatewayRefundId: varchar('gateway_refund_id', { length: 255 }),
+    isOfflinePayout: boolean('is_offline_payout').notNull().default(false),
+    offlineReference: varchar('offline_reference', { length: 255 }), // e.g. bKash TrxID
+    failureReason: text('failure_reason'),
+    initiatedBy: varchar('initiated_by', { length: 100 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+  },
+  (table) => [
+    index('idx_payment_refunds_payment_id').on(table.paymentId),
+    index('idx_payment_refunds_order_id').on(table.orderId),
+    index('idx_payment_refunds_status').on(table.status),
+  ],
+);
+
+export const paymentsRelations = relations(paymentsSchema, ({ one, many }) => ({
   order: one(ordersSchema, {
     fields: [paymentsSchema.orderId],
     references: [ordersSchema.id],
@@ -113,4 +147,24 @@ export const paymentsRelations = relations(paymentsSchema, ({ one }) => ({
     fields: [paymentsSchema.customerId],
     references: [customersSchema.id],
   }),
+  refunds: many(paymentRefundsSchema),
 }));
+
+export const paymentRefundsRelations = relations(
+  paymentRefundsSchema,
+  ({ one }) => ({
+    payment: one(paymentsSchema, {
+      fields: [paymentRefundsSchema.paymentId],
+      references: [paymentsSchema.id],
+    }),
+    order: one(ordersSchema, {
+      fields: [paymentRefundsSchema.orderId],
+      references: [ordersSchema.id],
+    }),
+  }),
+);
+
+export type PaymentSelectRow = typeof paymentsSchema.$inferSelect;
+export type PaymentInsertRow = typeof paymentsSchema.$inferInsert;
+export type PaymentRefundSelectRow = typeof paymentRefundsSchema.$inferSelect;
+export type PaymentRefundInsertRow = typeof paymentRefundsSchema.$inferInsert;

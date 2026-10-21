@@ -9,6 +9,10 @@ import { PaymentCompletedEvent } from '../events/payment-completed.event.js';
 import { PaymentFailedEvent } from '../events/payment-failed.event.js';
 import { PaymentCancelledEvent } from '../events/payment-cancelled.event.js';
 import { PaymentNeedsReviewEvent } from '../events/payment-needs-review.event.js';
+import { PaymentRefundInitiatedEvent } from '../events/payment-refund-initiated.event.js';
+import { PaymentRefundedEvent } from '../events/payment-refunded.event.js';
+import { PaymentRefundFailedEvent } from '../events/payment-refund-failed.event.js';
+import { PaymentRefund } from './payment-refund.entity.js';
 
 export interface PaymentProps {
   id: PaymentId;
@@ -28,6 +32,7 @@ export interface PaymentProps {
   version: number;
   createdAt: Date;
   updatedAt: Date;
+  refunds?: PaymentRefund[];
 }
 
 export interface CreatePaymentProps {
@@ -39,6 +44,15 @@ export interface CreatePaymentProps {
   idempotencyKey?: string | null;
   transactionId?: string | null;
   metadata?: Record<string, unknown> | null;
+}
+
+export interface InitiateRefundInput {
+  refundId?: string;
+  amount: Money;
+  reason: string;
+  initiatedBy: string;
+  isOfflinePayout?: boolean;
+  offlineReference?: string | null;
 }
 
 export class Payment extends AggregateRoot {
@@ -59,6 +73,7 @@ export class Payment extends AggregateRoot {
   private _version: number;
   private readonly _createdAt: Date;
   private _updatedAt: Date;
+  private _refunds: PaymentRefund[];
 
   private constructor(props: PaymentProps) {
     super();
@@ -79,6 +94,7 @@ export class Payment extends AggregateRoot {
     this._version = props.version;
     this._createdAt = props.createdAt;
     this._updatedAt = props.updatedAt;
+    this._refunds = props.refunds ? [...props.refunds] : [];
   }
 
   static create(props: CreatePaymentProps): Payment {
@@ -108,6 +124,7 @@ export class Payment extends AggregateRoot {
       version: 1,
       createdAt: now,
       updatedAt: now,
+      refunds: [],
     });
 
     payment.apply(
@@ -231,14 +248,84 @@ export class Payment extends AggregateRoot {
     );
   }
 
-  refund(refundAmount: Money, providerRefundId: string): void {
-    if (!this._status.isCompleted() && !this._status.isRefunded()) {
+  // ---------------------------------------------------------------------------
+  // Two-Phase Asynchronous Refund Lifecycle
+  // ---------------------------------------------------------------------------
+
+  initiateRefund(input: InitiateRefundInput): PaymentRefund {
+    if (
+      !this._status.isCompleted() &&
+      !this._status.isRefunded() &&
+      !this._status.isRefundFailed()
+    ) {
       throw new DomainException(
         `Cannot refund payment in '${this._status.getValue()}' status`,
       );
     }
 
-    const newTotalRefunded = this._refundedAmount.add(refundAmount);
+    if (this._status.isRefundPending()) {
+      throw new DomainException(
+        'A refund is already in progress for this payment',
+      );
+    }
+
+    if (input.amount.toCents() <= 0) {
+      throw new DomainException('Refund amount must be greater than zero');
+    }
+
+    const remainingRefundable =
+      this._amount.toCents() - this._refundedAmount.toCents();
+    if (input.amount.toCents() > remainingRefundable) {
+      throw new DomainException(
+        `Requested refund amount (${input.amount.toCents()} cents) exceeds remaining refundable balance (${remainingRefundable} cents)`,
+      );
+    }
+
+    const refund = PaymentRefund.create({
+      id: input.refundId,
+      paymentId: this._id.getValue(),
+      orderId: this._orderId,
+      amount: input.amount,
+      reason: input.reason,
+      initiatedBy: input.initiatedBy,
+      isOfflinePayout: input.isOfflinePayout ?? false,
+      offlineReference: input.offlineReference ?? null,
+    });
+
+    this._refunds.push(refund);
+    this._status = this._status.transitionTo('refund_pending');
+    this.touch();
+
+    this.apply(
+      new PaymentRefundInitiatedEvent(
+        this._id.getValue(),
+        this._orderId,
+        refund.id,
+        input.amount.toCents(),
+        input.amount.getCurrency(),
+        input.reason,
+        this._provider.getValue(),
+        this._transactionId,
+        new Date(),
+      ),
+    );
+
+    return refund;
+  }
+
+  completeRefund(refundId: string, providerRefundId: string): void {
+    const refund = this._refunds.find((r) => r.id === refundId);
+    if (!refund) {
+      throw new DomainException(`Refund with ID '${refundId}' was not found`);
+    }
+
+    if (refund.status === 'completed') {
+      return; // Already completed (idempotent)
+    }
+
+    refund.complete(providerRefundId);
+
+    const newTotalRefunded = this._refundedAmount.add(refund.amount);
     if (newTotalRefunded.toCents() > this._amount.toCents()) {
       throw new DomainException(
         `Total refund amount (${newTotalRefunded.toCents()} cents) cannot exceed original payment amount (${this._amount.toCents()} cents)`,
@@ -248,13 +335,64 @@ export class Payment extends AggregateRoot {
     this._refundedAmount = newTotalRefunded;
     this._providerRefundId = providerRefundId;
 
-    if (this._refundedAmount.toCents() === this._amount.toCents()) {
+    const isFull = this._refundedAmount.toCents() >= this._amount.toCents();
+    if (isFull) {
       this._status = this._status.transitionTo('refunded');
     } else {
       this._status = this._status.transitionTo('partially_refunded');
     }
 
     this.touch();
+
+    this.apply(
+      new PaymentRefundedEvent(
+        this._id.getValue(),
+        this._orderId,
+        refund.id,
+        refund.amount.toCents(),
+        this._refundedAmount.toCents(),
+        this._amount.getCurrency(),
+        providerRefundId,
+        isFull,
+        new Date(),
+      ),
+    );
+  }
+
+  failRefund(refundId: string, reason: string): void {
+    const refund = this._refunds.find((r) => r.id === refundId);
+    if (!refund) {
+      throw new DomainException(`Refund with ID '${refundId}' was not found`);
+    }
+
+    refund.fail(reason);
+    this._status = this._status.transitionTo('refund_failed');
+    this._failureReason = reason;
+    this.touch();
+
+    this.apply(
+      new PaymentRefundFailedEvent(
+        this._id.getValue(),
+        this._orderId,
+        refund.id,
+        refund.amount.toCents(),
+        this._amount.getCurrency(),
+        reason,
+        new Date(),
+      ),
+    );
+  }
+
+  /**
+   * Convenience synchronous refund method for backwards compatibility with tests.
+   */
+  refund(refundAmount: Money, providerRefundId: string): void {
+    const refund = this.initiateRefund({
+      amount: refundAmount,
+      reason: 'Standard payment refund',
+      initiatedBy: 'system',
+    });
+    this.completeRefund(refund.id, providerRefundId);
   }
 
   // ---------------------------------------------------------------------------
@@ -340,5 +478,9 @@ export class Payment extends AggregateRoot {
 
   get updatedAt(): Date {
     return this._updatedAt;
+  }
+
+  get refunds(): readonly PaymentRefund[] {
+    return [...this._refunds];
   }
 }

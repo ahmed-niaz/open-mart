@@ -1,12 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 import {
+  GatewayRefundResult,
   GenericWebhookRequest,
   InitiatePaymentInput,
   InitiatePaymentResult,
   PaymentGatewayStrategy,
   WebhookVerificationResult,
 } from '../../application/ports/payment-gateway-strategy.port.js';
+import { Money } from '../../../shared/domain/value-objects/money.vo.js';
 import {
   ApplicationException,
   ApplicationExceptionCode,
@@ -45,5 +47,17 @@ export class CodPaymentStrategy implements PaymentGatewayStrategy {
       'Cash on Delivery does not accept external webhooks',
       ApplicationExceptionCode.VALIDATION_ERROR,
     );
+  }
+
+  async refund(
+    _transactionId: string,
+    _amount: Money,
+    _reason?: string,
+  ): Promise<GatewayRefundResult> {
+    return {
+      refundId: `COD-REFUND-${Date.now()}`,
+      status: 'completed',
+      isOfflinePayout: true,
+    };
   }
 }

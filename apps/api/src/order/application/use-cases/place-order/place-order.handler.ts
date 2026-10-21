@@ -25,6 +25,7 @@ import {
 } from '../../../../shared/domain/exceptions/application.exception.js';
 import { Money } from '../../../../shared/domain/value-objects/money.vo.js';
 import { ShippingAddress } from '../../../domain/value-objects/shipping-address.vo.js';
+import { ShippingFeeCalculator } from '../../../domain/services/shipping-fee-calculator.service.js';
 import { OrderItem } from '../../../domain/entities/order-item.entity.js';
 import { Order } from '../../../domain/entities/order.entity.js';
 
@@ -73,6 +74,20 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
       }
     }
 
+    const shippingAddress = ShippingAddress.create(command.shippingAddress);
+    const firstProduct = productMap.values().next().value;
+    const currency = firstProduct?.unitPriceCurrency || 'USD';
+
+    const rawSubtotalCents = command.items.reduce((sum, item) => {
+      const prod = productMap.get(item.productId)!;
+      return sum + prod.unitPriceAmount * item.quantity;
+    }, 0);
+
+    const calculatedShippingFee = ShippingFeeCalculator.calculate({
+      address: shippingAddress,
+      subtotalAmount: Money.fromCents(rawSubtotalCents, currency),
+    });
+
     // Optional coupon discount calculation
     let discountResult: CalculatedDiscountResult | null = null;
     const customerIdentifier = command.customerId
@@ -95,7 +110,7 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
             quantity: i.quantity,
           };
         }),
-        shippingFee: 0,
+        shippingFee: calculatedShippingFee.toCents(),
       });
     }
 
@@ -127,8 +142,6 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
       orderItems.push(item);
     }
 
-    const shippingAddress = ShippingAddress.create(command.shippingAddress);
-
     const discountSnapshot = discountResult
       ? {
           code: discountResult.code,
@@ -146,6 +159,8 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
       shippingAddress,
       command.notes,
       discountSnapshot,
+      calculatedShippingFee,
+      Money.zero(currency),
     );
 
     const responseDto = OrderResponseDto.fromDomain(order);

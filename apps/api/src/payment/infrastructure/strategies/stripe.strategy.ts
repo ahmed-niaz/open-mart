@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 
 import {
+  GatewayRefundResult,
   GenericWebhookRequest,
   InitiatePaymentInput,
   InitiatePaymentResult,
@@ -271,22 +272,53 @@ export class StripePaymentStrategy implements PaymentGatewayStrategy {
     transactionId: string,
     amount: Money,
     reason?: string,
-  ): Promise<{ refundId: string }> {
+    idempotencyKey?: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<GatewayRefundResult> {
     try {
-      const refund = await this.stripe.refunds.create({
-        payment_intent: transactionId,
-        amount: amount.toCents(),
-        reason:
-          (reason as Stripe.RefundCreateParams.Reason) ||
-          'requested_by_customer',
-      });
-      return { refundId: refund.id };
+      let paymentIntentId = transactionId;
+      if (
+        metadata?.paymentIntentId &&
+        typeof metadata.paymentIntentId === 'string'
+      ) {
+        paymentIntentId = metadata.paymentIntentId;
+      } else if (transactionId.startsWith('cs_')) {
+        const session = await this.retrieveSession(transactionId);
+        if (session && typeof session.payment_intent === 'string') {
+          paymentIntentId = session.payment_intent;
+        }
+      }
+
+      const refund = await this.stripe.refunds.create(
+        {
+          payment_intent: paymentIntentId,
+          amount: amount.toCents(),
+          reason:
+            (reason as Stripe.RefundCreateParams.Reason) ||
+            'requested_by_customer',
+        },
+        idempotencyKey ? { idempotencyKey } : undefined,
+      );
+
+      let status: 'completed' | 'pending' | 'failed' = 'pending';
+      if (refund.status === 'succeeded') {
+        status = 'completed';
+      } else if (refund.status === 'failed' || refund.status === 'canceled') {
+        status = 'failed';
+      }
+
+      return {
+        refundId: refund.id,
+        status,
+        failureReason: refund.failure_reason ?? undefined,
+      };
     } catch (err: any) {
       this.logger.error(`Stripe refund failed: ${err.message}`, err.stack);
-      throw new ApplicationException(
-        `Stripe refund failed: ${err.message}`,
-        ApplicationExceptionCode.INTERNAL_SERVER_ERROR,
-      );
+      return {
+        refundId: '',
+        status: 'failed',
+        failureReason: err.message,
+      };
     }
   }
 }

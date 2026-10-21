@@ -46,6 +46,13 @@ export interface WebhookVerificationResult {
   gatewayPayload: Record<string, unknown>;
 }
 
+export interface GatewayRefundResult {
+  refundId: string;
+  status: 'completed' | 'pending' | 'failed';
+  failureReason?: string;
+  isOfflinePayout?: boolean;
+}
+
 export interface PaymentGatewayStrategy {
   getProviderName(): 'stripe' | 'cod' | 'sslcommerz';
   initiatePayment(input: InitiatePaymentInput): Promise<InitiatePaymentResult>;
@@ -59,5 +66,7 @@ export interface PaymentGatewayStrategy {
     transactionId: string,
     amount: Money,
     reason?: string,
-  ): Promise<{ refundId: string }>;
+    idempotencyKey?: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<GatewayRefundResult>;
 }

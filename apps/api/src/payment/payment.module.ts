@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '../shared/infrastructure/auth/auth.module.js';
 import { CustomerModule } from '../customer/customer.module.js';
 import { PaymentController } from './presentation/payment.controller.js';
+import { PaymentAdminController } from './presentation/payment-admin.controller.js';
 import { PAYMENT_REPOSITORY } from './application/ports/payment.repository.js';
 import { DrizzlePaymentRepository } from './infrastructure/adapters/drizzle-payment.repository.js';
 import { ORDER_PAYMENT_PORT } from './application/ports/order-payment.port.js';
@@ -18,6 +19,7 @@ import { ProcessWebhookCommandHandler } from './application/use-cases/process-we
 import { HandleRedirectCallbackCommandHandler } from './application/use-cases/handle-redirect-callback/handle-redirect-callback.handler.js';
 import { VerifyStripeSessionCommandHandler } from './application/use-cases/verify-stripe-session/verify-stripe-session.handler.js';
 import { CancelPaymentCommandHandler } from './application/use-cases/cancel-payment/cancel-payment.handler.js';
+import { RefundPaymentCommandHandler } from './application/use-cases/refund-payment/refund-payment.handler.js';
 import { GetPaymentByOrderIdQueryHandler } from './application/queries/get-payment-by-order-id/get-payment-by-order-id.handler.js';
 import { OrderDeliveredPaymentHandler } from './application/event-handlers/order-delivered.event-handler.js';
 import { OrderCancelledPaymentHandler } from './application/event-handlers/order-cancelled.event-handler.js';
@@ -25,7 +27,7 @@ import { OptionalJwtAuthGuard } from '../shared/infrastructure/guards/optional-j
 
 @Module({
   imports: [CqrsModule, ConfigModule, AuthModule, CustomerModule],
-  controllers: [PaymentController],
+  controllers: [PaymentController, PaymentAdminController],
   providers: [
     {
       provide: PAYMENT_REPOSITORY,
@@ -44,6 +46,7 @@ import { OptionalJwtAuthGuard } from '../shared/infrastructure/guards/optional-j
     HandleRedirectCallbackCommandHandler,
     VerifyStripeSessionCommandHandler,
     CancelPaymentCommandHandler,
+    RefundPaymentCommandHandler,
     GetPaymentByOrderIdQueryHandler,
     OrderDeliveredPaymentHandler,
     OrderCancelledPaymentHandler,

@@ -48,6 +48,10 @@ export enum AdminPermission {
   DISCOUNTS_WRITE = 'discounts:write',
   DISCOUNTS_DELETE = 'discounts:delete',
 
+  // Payments & Refunds
+  PAYMENTS_READ = 'payments:read',
+  PAYMENTS_REFUND = 'payments:refund',
+
   // System & Auditing
   AUDIT_READ = 'audit:read',
   SYSTEM_SETTINGS = 'system:settings',
@@ -88,6 +92,8 @@ export const ROLE_PERMISSIONS_MAP: Record<
     AdminPermission.DISCOUNTS_READ,
     AdminPermission.DISCOUNTS_WRITE,
     AdminPermission.DISCOUNTS_DELETE,
+    AdminPermission.PAYMENTS_READ,
+    AdminPermission.PAYMENTS_REFUND,
   ]),
 
   // manager manages catalog, stock replenishment, and order fulfillment
@@ -115,5 +121,7 @@ export const ROLE_PERMISSIONS_MAP: Record<
     AdminPermission.CUSTOMERS_READ,
     AdminPermission.ANALYTICS_READ,
     AdminPermission.DISCOUNTS_READ,
+    AdminPermission.PAYMENTS_READ,
+    AdminPermission.PAYMENTS_REFUND,
   ]),
 };

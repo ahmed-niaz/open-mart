@@ -12,6 +12,11 @@ export class OrderResponseDto {
   status!: string;
   totalAmount!: number;
   totalCurrency!: string;
+  subtotalAmount!: number;
+  shippingFeeAmount!: number;
+  shippingFeeDiscountAmount!: number;
+  netShippingAmount!: number;
+  taxAmount!: number;
   shippingAddress!: ShippingAddressProps;
   courierName!: string | null;
   trackingNumber!: string | null;
@@ -38,6 +43,14 @@ export class OrderResponseDto {
     dto.status = orderRow.status;
     dto.totalAmount = orderRow.totalAmount;
     dto.totalCurrency = orderRow.totalCurrency;
+    dto.subtotalAmount = orderRow.subtotalAmount ?? 0;
+    dto.shippingFeeAmount = orderRow.shippingFeeAmount ?? 0;
+    dto.shippingFeeDiscountAmount = orderRow.shippingFeeDiscountAmount ?? 0;
+    dto.netShippingAmount = Math.max(
+      0,
+      dto.shippingFeeAmount - dto.shippingFeeDiscountAmount,
+    );
+    dto.taxAmount = orderRow.taxAmount ?? 0;
     dto.shippingAddress = {
       recipientName: orderRow.recipientName,
       recipientPhone: orderRow.recipientPhone,
@@ -82,6 +95,13 @@ export class OrderResponseDto {
     dto.status = order.status.getValue();
     dto.totalAmount = order.getTotalAmount().toCents();
     dto.totalCurrency = order.getTotalAmount().getCurrency();
+    dto.subtotalAmount = order.getSubtotalAmount().toCents();
+    dto.shippingFeeAmount = order.getShippingFeeAmount().toCents();
+    dto.shippingFeeDiscountAmount = order
+      .getShippingFeeDiscountAmount()
+      .toCents();
+    dto.netShippingAmount = order.getNetShippingAmount().toCents();
+    dto.taxAmount = order.getTaxAmount().toCents();
     dto.shippingAddress = order.shippingAddress.toObject();
     dto.courierName = order.courierName;
     dto.trackingNumber = order.trackingNumber;

@@ -35,7 +35,13 @@ export const ordersSchema = pgTable(
       onDelete: 'set null',
     }),
     status: orderStatusEnum('status').notNull().default('pending'),
-    totalAmount: integer('total_amount').notNull(), // minor units / cents
+    subtotalAmount: integer('subtotal_amount').notNull().default(0), // items subtotal before discounts
+    shippingFeeAmount: integer('shipping_fee_amount').notNull().default(0), // tiered delivery charge
+    shippingFeeDiscountAmount: integer('shipping_fee_discount_amount')
+      .notNull()
+      .default(0), // shipping discount
+    taxAmount: integer('tax_amount').notNull().default(0), // backed-out VAT portion
+    totalAmount: integer('total_amount').notNull(), // net payable: subtotal - discount + net shipping
     totalCurrency: varchar('total_currency', { length: 3 })
       .notNull()
       .default('USD'),
