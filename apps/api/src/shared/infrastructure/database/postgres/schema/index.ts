@@ -6,3 +6,5 @@ export * from './payment.schema.js';
 export * from './inventory.schema.js';
 export * from './admin.schema.js';
 export * from './discount.schema.js';
+export * from './outbox.schema.js';
+export * from './idempotency.schema.js';

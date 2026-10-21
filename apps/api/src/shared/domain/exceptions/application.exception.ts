@@ -5,6 +5,7 @@ export enum ApplicationExceptionCode {
   FORBIDDEN = 'FORBIDDEN',
   INTERNAL_SERVER_ERROR = 'INTERNAL_SERVER_ERROR',
   CONFLICT = 'CONFLICT',
+  UNPROCESSABLE_ENTITY = 'UNPROCESSABLE_ENTITY',
 }
 
 export class ApplicationException extends Error {

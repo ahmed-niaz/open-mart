@@ -18,6 +18,8 @@ const CODE_TO_HTTP_STATUS: Record<ApplicationExceptionCode, HttpStatus> = {
   [ApplicationExceptionCode.INTERNAL_SERVER_ERROR]:
     HttpStatus.INTERNAL_SERVER_ERROR,
   [ApplicationExceptionCode.CONFLICT]: HttpStatus.CONFLICT,
+  [ApplicationExceptionCode.UNPROCESSABLE_ENTITY]:
+    HttpStatus.UNPROCESSABLE_ENTITY,
 };
 
 @Catch(ApplicationException)

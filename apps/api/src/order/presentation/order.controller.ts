@@ -31,12 +31,14 @@ import {
 } from '../../customer/presentation/guards/jwt-auth.guard.js';
 import { OptionalJwtAuthGuard } from '../../shared/infrastructure/guards/optional-jwt-auth.guard.js';
 import { CurrentUser } from '../../customer/presentation/decorators/current-user.decorator.js';
+import { IdempotencyService } from '../../shared/infrastructure/idempotency/idempotency.service.js';
 
 @Controller('orders')
 export class OrderController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly idempotencyService: IdempotencyService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -76,6 +78,22 @@ export class OrderController {
           'shippingAddress.recipientName is required for guest checkout',
         );
       }
+    }
+
+    const scope = user
+      ? `user:${user.id}`
+      : `guest:${dto.customer?.email?.toLowerCase().trim() || 'anonymous'}`;
+    const requestPath = '/api/orders';
+
+    // Fast-path cached idempotency check
+    const check = await this.idempotencyService.checkKey(
+      key,
+      scope,
+      requestPath,
+      dto,
+    );
+    if (check.cached) {
+      return check.responseBody;
     }
 
     const result = await this.commandBus.execute(

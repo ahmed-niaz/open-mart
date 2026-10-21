@@ -27,12 +27,17 @@ import {
   ApplicationException,
   ApplicationExceptionCode,
 } from '../../../shared/domain/exceptions/application.exception.js';
+import { OutboxService } from '../../../shared/infrastructure/outbox/outbox.service.js';
+import { IdempotencyService } from '../../../shared/infrastructure/idempotency/idempotency.service.js';
+import type { OrderIdempotencyContext } from '../../application/ports/order.repository.js';
 
 @Injectable()
 export class DrizzleOrderRepository implements OrderRepositoryPort {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDB,
     private readonly eventPublisher: EventPublisher,
+    private readonly outboxService: OutboxService,
+    private readonly idempotencyService: IdempotencyService,
   ) {}
 
   async findById(id: OrderId): Promise<Order | null> {
@@ -56,9 +61,10 @@ export class DrizzleOrderRepository implements OrderRepositoryPort {
     return this.toDomain(orderRow, itemRows);
   }
 
-  async save(order: Order): Promise<void> {
-    const orderWithEvents = this.eventPublisher.mergeObjectContext(order);
-
+  async save(
+    order: Order,
+    idempotency?: OrderIdempotencyContext,
+  ): Promise<void> {
     await this.db.transaction(async (trx) => {
       const existing = await trx
         .select({
@@ -156,10 +162,34 @@ export class DrizzleOrderRepository implements OrderRepositoryPort {
 
         order.incrementVersion();
       }
+
+      // Stage uncommitted domain events to Outbox table atomically inside the transaction
+      const uncommittedEvents = order.getUncommittedEvents();
+      if (uncommittedEvents.length > 0) {
+        await this.outboxService.stageEvents(
+          trx,
+          'Order',
+          order.id.getValue(),
+          uncommittedEvents,
+        );
+      }
+
+      // Write idempotency record atomically within the same database transaction
+      if (idempotency) {
+        await this.idempotencyService.recordCompleted(
+          trx,
+          idempotency.key,
+          idempotency.scope,
+          idempotency.requestPath,
+          idempotency.payload,
+          201,
+          idempotency.responseBody,
+        );
+      }
     });
 
-    // Commit all staged domain events to the CQRS EventBus
-    orderWithEvents.commit();
+    order.clearEvents();
+    this.outboxService.triggerSweep();
   }
 
   private toDomain(

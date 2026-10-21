@@ -21,50 +21,30 @@ import {
   ApplicationException,
   ApplicationExceptionCode,
 } from '../../../shared/domain/exceptions/application.exception.js';
+import { OutboxService } from '../../../shared/infrastructure/outbox/outbox.service.js';
 
 @Injectable()
 export class DrizzlePaymentRepository implements PaymentRepositoryPort {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDB,
     private readonly eventPublisher: EventPublisher,
+    private readonly outboxService: OutboxService,
   ) {}
 
   async save(payment: Payment): Promise<void> {
-    const existing = await this.db
-      .select({ id: paymentsSchema.id, version: paymentsSchema.version })
-      .from(paymentsSchema)
-      .where(eq(paymentsSchema.id, payment.id.getValue()))
-      .limit(1);
+    await this.db.transaction(async (trx) => {
+      const existing = await trx
+        .select({ id: paymentsSchema.id, version: paymentsSchema.version })
+        .from(paymentsSchema)
+        .where(eq(paymentsSchema.id, payment.id.getValue()))
+        .limit(1);
 
-    if (existing.length === 0) {
-      await this.db.insert(paymentsSchema).values({
-        id: payment.id.getValue(),
-        orderId: payment.orderId,
-        customerId: payment.customerId,
-        provider: payment.provider.getValue(),
-        status: payment.status.getValue(),
-        amount: payment.amount.toCents(),
-        currency: payment.amount.getCurrency(),
-        transactionId: payment.transactionId,
-        idempotencyKey: payment.idempotencyKey,
-        failureCode: payment.failureCode,
-        failureReason: payment.failureReason,
-        providerRefundId: payment.providerRefundId,
-        refundedAmount: payment.refundedAmount.toCents(),
-        paidAt: payment.paidAt,
-        metadata: payment.metadata,
-        version: payment.version,
-        createdAt: payment.createdAt,
-        updatedAt: payment.updatedAt,
-      });
-    } else {
-      const currentVersion = payment.version;
-      payment.incrementVersion();
-      const nextVersion = payment.version;
-
-      const updated = await this.db
-        .update(paymentsSchema)
-        .set({
+      if (existing.length === 0) {
+        await trx.insert(paymentsSchema).values({
+          id: payment.id.getValue(),
+          orderId: payment.orderId,
+          customerId: payment.customerId,
+          provider: payment.provider.getValue(),
           status: payment.status.getValue(),
           amount: payment.amount.toCents(),
           currency: payment.amount.getCurrency(),
@@ -76,26 +56,61 @@ export class DrizzlePaymentRepository implements PaymentRepositoryPort {
           refundedAmount: payment.refundedAmount.toCents(),
           paidAt: payment.paidAt,
           metadata: payment.metadata,
-          version: nextVersion,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(paymentsSchema.id, payment.id.getValue()),
-            eq(paymentsSchema.version, currentVersion),
-          ),
-        )
-        .returning({ id: paymentsSchema.id });
+          version: payment.version,
+          createdAt: payment.createdAt,
+          updatedAt: payment.updatedAt,
+        });
+      } else {
+        const currentVersion = payment.version;
+        payment.incrementVersion();
+        const nextVersion = payment.version;
 
-      if (updated.length === 0) {
-        throw new ApplicationException(
-          `Payment '${payment.id.getValue()}' was modified by another transaction. Concurrency conflict.`,
-          ApplicationExceptionCode.CONFLICT,
+        const updated = await trx
+          .update(paymentsSchema)
+          .set({
+            status: payment.status.getValue(),
+            amount: payment.amount.toCents(),
+            currency: payment.amount.getCurrency(),
+            transactionId: payment.transactionId,
+            idempotencyKey: payment.idempotencyKey,
+            failureCode: payment.failureCode,
+            failureReason: payment.failureReason,
+            providerRefundId: payment.providerRefundId,
+            refundedAmount: payment.refundedAmount.toCents(),
+            paidAt: payment.paidAt,
+            metadata: payment.metadata,
+            version: nextVersion,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(paymentsSchema.id, payment.id.getValue()),
+              eq(paymentsSchema.version, currentVersion),
+            ),
+          )
+          .returning({ id: paymentsSchema.id });
+
+        if (updated.length === 0) {
+          throw new ApplicationException(
+            `Payment '${payment.id.getValue()}' was modified by another transaction. Concurrency conflict.`,
+            ApplicationExceptionCode.CONFLICT,
+          );
+        }
+      }
+
+      const uncommittedEvents = payment.getUncommittedEvents();
+      if (uncommittedEvents.length > 0) {
+        await this.outboxService.stageEvents(
+          trx,
+          'Payment',
+          payment.id.getValue(),
+          uncommittedEvents,
         );
       }
-    }
+    });
 
-    this.eventPublisher.mergeObjectContext(payment).commit();
+    payment.clearEvents();
+    this.outboxService.triggerSweep();
   }
 
   async findById(id: PaymentId): Promise<Payment | null> {
@@ -167,6 +182,7 @@ export class DrizzlePaymentRepository implements PaymentRepositoryPort {
       const txRepo = new DrizzlePaymentRepository(
         tx as unknown as DrizzleDB,
         this.eventPublisher,
+        this.outboxService,
       );
       await action(txRepo);
       return true;

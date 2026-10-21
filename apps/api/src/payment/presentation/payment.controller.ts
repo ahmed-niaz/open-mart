@@ -28,6 +28,7 @@ import { CancelPaymentCommand } from '../application/use-cases/cancel-payment/ca
 import { GetPaymentByOrderIdQuery } from '../application/queries/get-payment-by-order-id/get-payment-by-order-id.query.js';
 import { InitiatePaymentDto } from './dto/initiate-payment.dto.js';
 import { OptionalJwtAuthGuard } from '../../shared/infrastructure/guards/optional-jwt-auth.guard.js';
+import { IdempotencyService } from '../../shared/infrastructure/idempotency/idempotency.service.js';
 
 @Controller('payments')
 export class PaymentController {
@@ -35,6 +36,7 @@ export class PaymentController {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
     private readonly configService: ConfigService,
+    private readonly idempotencyService: IdempotencyService,
   ) {}
 
   /**
@@ -57,6 +59,21 @@ export class PaymentController {
       );
     }
 
+    const scope = dto.customerEmail
+      ? `guest:${dto.customerEmail.toLowerCase().trim()}`
+      : 'guest:anonymous';
+    const requestPath = '/api/payments/initiate';
+
+    const check = await this.idempotencyService.checkKey(
+      key,
+      scope,
+      requestPath,
+      dto,
+    );
+    if (check.cached) {
+      return check.responseBody;
+    }
+
     const result = await this.commandBus.execute(
       new InitiatePaymentCommand(
         dto.orderId,
@@ -66,7 +83,18 @@ export class PaymentController {
       ),
     );
 
-    return { data: result };
+    const responsePayload = { data: result };
+    await this.idempotencyService.recordCompleted(
+      null,
+      key,
+      scope,
+      requestPath,
+      dto,
+      HttpStatus.OK,
+      responsePayload,
+    );
+
+    return responsePayload;
   }
 
   /**

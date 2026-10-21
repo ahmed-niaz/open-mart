@@ -148,8 +148,27 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
       discountSnapshot,
     );
 
-    // Save initial order in pending state
-    await this.orderRepository.save(order);
+    const responseDto = OrderResponseDto.fromDomain(order);
+
+    const idempotencyContext = command.idempotencyKey
+      ? {
+          key: command.idempotencyKey,
+          scope: command.customerId
+            ? `user:${command.customerId}`
+            : `guest:${customerIdentifier}`,
+          requestPath: '/api/orders',
+          payload: {
+            items: command.items,
+            shippingAddress: command.shippingAddress,
+            notes: command.notes,
+            couponCode: command.couponCode,
+          },
+          responseBody: { data: responseDto },
+        }
+      : undefined;
+
+    // Save initial order in pending state with outbox & atomic idempotency
+    await this.orderRepository.save(order, idempotencyContext);
 
     try {
       // Two-phase discount reservation
@@ -184,6 +203,6 @@ export class PlaceOrderCommandHandler implements ICommandHandler<
       throw error;
     }
 
-    return OrderResponseDto.fromDomain(order);
+    return responseDto;
   }
 }
