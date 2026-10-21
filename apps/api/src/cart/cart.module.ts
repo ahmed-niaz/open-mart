@@ -16,6 +16,7 @@ import { RemoveItemFromCartCommandHandler } from './application/commands/remove-
 import { ClearCartCommandHandler } from './application/commands/clear-cart/clear-cart.handler.js';
 import { MergeCartCommandHandler } from './application/commands/merge-cart/merge-cart.handler.js';
 import { GetCartQueryHandler } from './application/queries/get-cart/get-cart.handler.js';
+import { OrderPlacedCartHandler } from './application/event-handlers/order-placed.event-handler.js';
 import { AbandonedCartJob } from './infrastructure/jobs/abandoned-cart.job.js';
 import { OptionalJwtAuthGuard } from '../shared/infrastructure/guards/optional-jwt-auth.guard.js';
 
@@ -41,6 +42,7 @@ import { OptionalJwtAuthGuard } from '../shared/infrastructure/guards/optional-j
     ClearCartCommandHandler,
     MergeCartCommandHandler,
     GetCartQueryHandler,
+    OrderPlacedCartHandler,
     AbandonedCartJob,
     OptionalJwtAuthGuard,
   ],

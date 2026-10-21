@@ -3,8 +3,14 @@ import { AddItemToCartCommandHandler } from '../../src/cart/application/commands
 import { AddItemToCartCommand } from '../../src/cart/application/commands/add-item-to-cart/add-item-to-cart.command.js';
 import { UpdateCartItemQuantityCommandHandler } from '../../src/cart/application/commands/update-cart-item-quantity/update-cart-item-quantity.handler.js';
 import { UpdateCartItemQuantityCommand } from '../../src/cart/application/commands/update-cart-item-quantity/update-cart-item-quantity.command.js';
+import { RemoveItemFromCartCommandHandler } from '../../src/cart/application/commands/remove-item-from-cart/remove-item-from-cart.handler.js';
+import { RemoveItemFromCartCommand } from '../../src/cart/application/commands/remove-item-from-cart/remove-item-from-cart.command.js';
+import { ClearCartCommandHandler } from '../../src/cart/application/commands/clear-cart/clear-cart.handler.js';
+import { ClearCartCommand } from '../../src/cart/application/commands/clear-cart/clear-cart.command.js';
 import { MergeCartCommandHandler } from '../../src/cart/application/commands/merge-cart/merge-cart.handler.js';
 import { MergeCartCommand } from '../../src/cart/application/commands/merge-cart/merge-cart.command.js';
+import { OrderPlacedCartHandler } from '../../src/cart/application/event-handlers/order-placed.event-handler.js';
+import { OrderPlacedEvent } from '../../src/order/domain/events/order-placed.event.js';
 import { Cart } from '../../src/cart/domain/entities/cart.entity.js';
 import type { CartRepositoryPort } from '../../src/cart/application/ports/cart.repository.js';
 import type { CartProductPort } from '../../src/cart/application/ports/cart-product.port.js';
@@ -141,6 +147,73 @@ describe('Cart Command Handlers (Application Layer)', () => {
     });
   });
 
+  describe('RemoveItemFromCartCommandHandler', () => {
+    it('removes an existing product from customer cart and saves', async () => {
+      const cart = Cart.create({ customerId });
+      cart.addItem(p1, 2);
+      (mockRepo.findActiveByCustomerId as any).mockResolvedValue(cart);
+
+      const handler = new RemoveItemFromCartCommandHandler(
+        mockRepo as CartRepositoryPort,
+      );
+
+      const result = await handler.execute(
+        new RemoveItemFromCartCommand(p1, customerId, null),
+      );
+
+      expect(result.cartId).toBe(cart.id.getValue());
+      expect(cart.items).toHaveLength(0);
+      expect(mockRepo.save).toHaveBeenCalledWith(cart);
+    });
+
+    it('throws ApplicationException if active cart is not found', async () => {
+      (mockRepo.findActiveByCustomerId as any).mockResolvedValue(null);
+
+      const handler = new RemoveItemFromCartCommandHandler(
+        mockRepo as CartRepositoryPort,
+      );
+
+      await expect(
+        handler.execute(new RemoveItemFromCartCommand(p1, customerId, null)),
+      ).rejects.toThrow(ApplicationException);
+    });
+  });
+
+  describe('ClearCartCommandHandler', () => {
+    it('clears all items from cart and saves', async () => {
+      const cart = Cart.create({ customerId });
+      cart.addItem(p1, 2);
+      (mockRepo.findActiveByCustomerId as any).mockResolvedValue(cart);
+
+      const handler = new ClearCartCommandHandler(
+        mockRepo as CartRepositoryPort,
+      );
+
+      const result = await handler.execute(
+        new ClearCartCommand(customerId, null),
+      );
+
+      expect(result.cartId).toBe(cart.id.getValue());
+      expect(cart.items).toHaveLength(0);
+      expect(mockRepo.save).toHaveBeenCalledWith(cart);
+    });
+
+    it('returns null cartId idempotently if active cart is not found', async () => {
+      (mockRepo.findActiveByCustomerId as any).mockResolvedValue(null);
+
+      const handler = new ClearCartCommandHandler(
+        mockRepo as CartRepositoryPort,
+      );
+
+      const result = await handler.execute(
+        new ClearCartCommand(customerId, null),
+      );
+
+      expect(result.cartId).toBeNull();
+      expect(mockRepo.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('MergeCartCommandHandler', () => {
     it('merges guest cart into customer cart and saves both', async () => {
       const guestCart = Cart.create({ guestId });
@@ -184,6 +257,59 @@ describe('Cart Command Handlers (Application Layer)', () => {
       expect(result.cartId).toBe(guestCart.id.getValue());
       expect(guestCart.customerId).toBe(customerId);
       expect(mockRepo.save).toHaveBeenCalledWith(guestCart);
+    });
+  });
+
+  describe('OrderPlacedCartHandler', () => {
+    it('marks customer active cart converted and retains items for audit history upon order placement', async () => {
+      const cart = Cart.create({ customerId });
+      cart.addItem(p1, 2);
+
+      (mockRepo.findActiveByCustomerId as any).mockResolvedValue(cart);
+
+      const mockEventDeduplication = {
+        executeIdempotently: vi
+          .fn()
+          .mockImplementation((_id, _name, fn) => fn()),
+      };
+
+      const handler = new OrderPlacedCartHandler(
+        mockRepo as CartRepositoryPort,
+        mockEventDeduplication as any,
+      );
+
+      const orderId = '00000000-0000-0000-0000-000000000099';
+      await handler.handle(
+        new OrderPlacedEvent(
+          orderId,
+          customerId,
+          5000,
+          'BDT',
+          {
+            recipientName: 'Alice',
+            recipientPhone: '01711111111',
+            division: 'Dhaka',
+            district: 'Dhaka',
+            city: 'Dhaka',
+            area: 'Dhanmondi',
+            addressLine: 'House 1',
+          },
+          [
+            {
+              productId: p1,
+              productName: 'Panjabi',
+              productSku: 'PAN-01',
+              unitPriceAmount: 2500,
+              quantity: 2,
+            },
+          ],
+        ),
+      );
+
+      expect(cart.status.isConverted()).toBe(true);
+      expect(cart.convertedOrderId).toBe(orderId);
+      expect(cart.items).toHaveLength(1);
+      expect(mockRepo.save).toHaveBeenCalledWith(cart);
     });
   });
 });
