@@ -28,6 +28,8 @@ describe('VerifyStripeSessionCommandHandler', () => {
       findById: vi.fn(),
       findByOrderId: vi.fn(),
       findByTransactionId: vi.fn(),
+      findRefundsByPaymentId: vi.fn().mockResolvedValue([]),
+      findRefundsByOrderId: vi.fn().mockResolvedValue([]),
       processWebhookEventAtomic: vi.fn(),
     };
 

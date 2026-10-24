@@ -138,6 +138,7 @@ export class CreateProductDto {
   status?: ProductStatus = ProductStatus.DRAFT;
 
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
   @IsUUID('4', { message: 'categoryId must be a valid UUID' })
   categoryId?: string;
 

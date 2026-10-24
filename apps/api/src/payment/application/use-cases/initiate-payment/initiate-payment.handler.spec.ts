@@ -29,6 +29,8 @@ describe('InitiatePaymentCommandHandler', () => {
       findById: vi.fn(),
       findByOrderId: vi.fn().mockResolvedValue(null),
       findByTransactionId: vi.fn(),
+      findRefundsByPaymentId: vi.fn().mockResolvedValue([]),
+      findRefundsByOrderId: vi.fn().mockResolvedValue([]),
       processWebhookEventAtomic: vi.fn(),
     };
 

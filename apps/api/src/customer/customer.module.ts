@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 
 import { AuthModule } from '../shared/infrastructure/auth/auth.module.js';
 import { CustomerController } from './presentation/customer.controller.js';
+import { CustomerAdminController } from './presentation/customer-admin.controller.js';
 import { GoogleAuthController } from './presentation/google-auth.controller.js';
 import { CUSTOMER_REPOSITORY } from './application/ports/customer.repository.js';
 import { DrizzleCustomerRepository } from './infrastructure/adapters/drizzle-customer.repository.js';
@@ -15,7 +16,11 @@ import { JwtAuthGuard } from './presentation/guards/jwt-auth.guard.js';
 
 @Module({
   imports: [CqrsModule, ConfigModule, AuthModule],
-  controllers: [CustomerController, GoogleAuthController],
+  controllers: [
+    CustomerController,
+    CustomerAdminController,
+    GoogleAuthController,
+  ],
   providers: [
     {
       provide: CUSTOMER_REPOSITORY,

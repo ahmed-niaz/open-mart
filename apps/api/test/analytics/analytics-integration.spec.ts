@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, afterAll, describe, expect, it } from 'vitest';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -26,13 +26,28 @@ const dbUrl =
   'postgresql://postgres:postgres@localhost:5432/openmart';
 
 describe('Analytics Real Database Integration Tests', () => {
-  let client: postgres.Sql;
+  let client: postgres.Sql | null = null;
   let db: any;
   let mockConfigService: any;
+  let isDbAvailable = false;
 
   beforeAll(async () => {
-    client = postgres(dbUrl, { max: 1 });
-    db = drizzle(client);
+    try {
+      const testClient = postgres(dbUrl, {
+        max: 1,
+        connect_timeout: 2,
+        idle_timeout: 2,
+      });
+      await testClient`SELECT 1`;
+      client = testClient;
+      db = drizzle(client);
+      isDbAvailable = true;
+    } catch {
+      console.warn(
+        `PostgreSQL is not reachable at ${dbUrl}. Skipping database integration tests.`,
+      );
+      isDbAvailable = false;
+    }
 
     mockConfigService = {
       get: (key: string) => {
@@ -40,6 +55,12 @@ describe('Analytics Real Database Integration Tests', () => {
         return null;
       },
     };
+  });
+
+  beforeEach((ctx) => {
+    if (!isDbAvailable) {
+      ctx.skip();
+    }
   });
 
   afterAll(async () => {

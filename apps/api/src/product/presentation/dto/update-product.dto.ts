@@ -72,6 +72,7 @@ export class UpdateProductDto {
   status?: ProductStatus;
 
   @IsOptional()
+  @Transform(({ value }) => (value === '' ? null : value))
   @ValidateIf((_, val) => val !== null)
   @IsUUID('4', { message: 'categoryId must be a valid UUID or null' })
   categoryId?: string | null;

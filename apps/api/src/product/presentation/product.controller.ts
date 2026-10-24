@@ -116,6 +116,13 @@ export class ProductController {
     };
   }
 
+  @Get()
+  async list(
+    @Query() queryDto: ListProductQueryDto,
+  ): Promise<PaginatedResult<ProductResponseDto>> {
+    return this.findAll(queryDto);
+  }
+
   @Get('all')
   async findAll(
     @Query() queryDto: ListProductQueryDto,

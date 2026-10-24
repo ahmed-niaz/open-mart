@@ -23,6 +23,9 @@ export class CreateCategoryDto {
   description?: string;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    value === '' || value === null ? undefined : value,
+  )
   @IsUUID('4', { message: 'parentId must be a valid UUID' })
   parentId?: string;
 

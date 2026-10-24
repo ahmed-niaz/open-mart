@@ -21,6 +21,8 @@ import { UpdateSettingsCommand } from '../../application/commands/update-setting
 import { ListInventoryQuery } from '../../application/queries/list-inventory/list-inventory.query.js';
 import { GetInventoryBySkuQuery } from '../../application/queries/get-inventory-by-sku/get-inventory-by-sku.query.js';
 import { GetInventoryMovementsQuery } from '../../application/queries/get-inventory-movements/get-inventory-movements.query.js';
+import { GetInventorySummaryQuery } from '../../application/queries/get-inventory-summary/get-inventory-summary.query.js';
+import { ListAllMovementsQuery } from '../../application/queries/list-all-movements/list-all-movements.query.js';
 import { RestockDto } from '../dto/restock.dto.js';
 import { AdjustStockDto } from '../dto/adjust-stock.dto.js';
 import { StocktakeDto } from '../dto/stocktake.dto.js';
@@ -42,6 +44,42 @@ export class InventoryAdminController {
   ) {}
 
   /**
+   * GET /api/admin/inventory/summary
+   * Warehouse inventory metrics summary (total SKUs, health status counts, units, valuation).
+   */
+  @Get('summary')
+  @RequirePermissions(AdminPermission.INVENTORY_READ)
+  async getInventorySummary() {
+    const result = await this.queryBus.execute(new GetInventorySummaryQuery());
+    return { data: result };
+  }
+
+  /**
+   * GET /api/admin/inventory/movements
+   * Global warehouse movements ledger / audit history across all SKUs.
+   */
+  @Get('movements')
+  @RequirePermissions(AdminPermission.INVENTORY_READ)
+  async listAllMovements(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 20,
+    @Query('sku') sku?: string,
+  ) {
+    const result = await this.queryBus.execute(
+      new ListAllMovementsQuery(Number(page), Number(limit), sku),
+    );
+    return {
+      data: result.movements,
+      meta: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
+    };
+  }
+
+  /**
    * GET /api/admin/inventory
    * Paginated warehouse stock list with status filters (low_stock, out_of_stock).
    */
@@ -56,7 +94,20 @@ export class InventoryAdminController {
         query.limit,
       ),
     );
-    return { data: result };
+    return {
+      data: result.items,
+      meta: {
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      },
+      // Backward compatibility fields
+      items: result.items,
+      total: result.total,
+      page: result.page,
+      totalPages: result.totalPages,
+    };
   }
 
   /**

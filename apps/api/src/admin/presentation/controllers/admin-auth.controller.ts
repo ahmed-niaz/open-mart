@@ -7,18 +7,26 @@ import {
   Inject,
   Patch,
   Post,
+  Query,
   Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 
 import { LoginAdminCommand } from '../../application/commands/login-admin/login-admin.command.js';
+import { RegisterAdminCommand } from '../../application/commands/register-admin/register-admin.command.js';
+import { LoginAdminGoogleCommand } from '../../application/commands/login-admin-google/login-admin-google.command.js';
 import { RefreshAdminTokenCommand } from '../../application/commands/refresh-admin-token/refresh-admin-token.command.js';
 import { ChangeAdminPasswordCommand } from '../../application/commands/change-admin-password/change-admin-password.command.js';
 import { GetAdminProfileQuery } from '../../application/queries/get-admin-profile/get-admin-profile.query.js';
 import { LoginAdminDto } from '../dto/login-admin.dto.js';
+import {
+  RegisterAdminDto,
+  GoogleVerifyDto,
+} from '../dto/register-admin.dto.js';
 import { ChangeAdminPasswordDto } from '../dto/change-admin-password.dto.js';
 import type { AdminAuthResponseDto } from '../../application/dto/admin-auth-response.dto.js';
 import { AdminJwtGuard } from '../../../shared/infrastructure/guards/admin-jwt.guard.js';
@@ -33,6 +41,10 @@ import {
   type TokenPair,
   type TokenServicePort,
 } from '../../../shared/application/ports/token-service.port.js';
+import {
+  ADMIN_GOOGLE_AUTH_PORT,
+  type AdminGoogleAuthPort,
+} from '../../application/ports/admin-google-auth.port.js';
 import { AuthCookieHelper } from '../../../shared/infrastructure/auth/auth-cookie.helper.js';
 import {
   ApplicationException,
@@ -57,9 +69,52 @@ export class AdminAuthController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly configService: ConfigService,
     @Inject(TOKEN_SERVICE_PORT)
     private readonly tokenService: TokenServicePort,
+    @Inject(ADMIN_GOOGLE_AUTH_PORT)
+    private readonly adminGoogleAuth: AdminGoogleAuthPort,
   ) {}
+
+  @Post('register')
+  @HttpCode(HttpStatus.CREATED)
+  async register(
+    @Body() dto: RegisterAdminDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AdminAuthResponseDto> {
+    const ip = extractClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+
+    const result = await this.commandBus.execute<
+      RegisterAdminCommand,
+      AdminAuthResponseDto
+    >(
+      new RegisterAdminCommand(
+        dto.email,
+        dto.password,
+        dto.firstName,
+        dto.lastName,
+        dto.phoneNumber,
+        dto.registrationSecret,
+        ip,
+        userAgent,
+      ),
+    );
+
+    AuthCookieHelper.setAuthCookies(
+      res,
+      result.accessToken,
+      result.refreshToken,
+      {
+        accessTokenMaxAgeMs: this.tokenService.getAccessTokenMaxAgeMs(),
+        refreshTokenMaxAgeMs: this.tokenService.getRefreshTokenMaxAgeMs(),
+      },
+      ADMIN_AUTH_COOKIE_PATH,
+    );
+
+    return result;
+  }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -75,6 +130,81 @@ export class AdminAuthController {
       LoginAdminCommand,
       AdminAuthResponseDto
     >(new LoginAdminCommand(dto.email, dto.password, ip, userAgent));
+
+    AuthCookieHelper.setAuthCookies(
+      res,
+      result.accessToken,
+      result.refreshToken,
+      {
+        accessTokenMaxAgeMs: this.tokenService.getAccessTokenMaxAgeMs(),
+        refreshTokenMaxAgeMs: this.tokenService.getRefreshTokenMaxAgeMs(),
+      },
+      ADMIN_AUTH_COOKIE_PATH,
+    );
+
+    return result;
+  }
+
+  @Get('google')
+  googleAuth(@Res() res: Response): void {
+    const url = this.adminGoogleAuth.getAuthorizationUrl();
+    res.redirect(url);
+  }
+
+  @Get('google/callback')
+  async googleAuthCallback(
+    @Query('code') code: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    const ip = extractClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+    const adminWebUrl =
+      this.configService.get<string>('ADMIN_WEB_URL') ||
+      'http://localhost:5173';
+
+    try {
+      const result = await this.commandBus.execute<
+        LoginAdminGoogleCommand,
+        AdminAuthResponseDto
+      >(new LoginAdminGoogleCommand(code, undefined, ip, userAgent));
+
+      AuthCookieHelper.setAuthCookies(
+        res,
+        result.accessToken,
+        result.refreshToken,
+        {
+          accessTokenMaxAgeMs: this.tokenService.getAccessTokenMaxAgeMs(),
+          refreshTokenMaxAgeMs: this.tokenService.getRefreshTokenMaxAgeMs(),
+        },
+        ADMIN_AUTH_COOKIE_PATH,
+      );
+
+      res.redirect(
+        `${adminWebUrl}/admin?auth_token=${encodeURIComponent(result.accessToken)}`,
+      );
+    } catch (err: any) {
+      const msg = encodeURIComponent(
+        err?.message || 'Google authentication failed',
+      );
+      res.redirect(`${adminWebUrl}/admin/login?error=${msg}`);
+    }
+  }
+
+  @Post('google/verify')
+  @HttpCode(HttpStatus.OK)
+  async googleVerify(
+    @Body() dto: GoogleVerifyDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AdminAuthResponseDto> {
+    const ip = extractClientIp(req);
+    const userAgent = req.headers['user-agent'] || null;
+
+    const result = await this.commandBus.execute<
+      LoginAdminGoogleCommand,
+      AdminAuthResponseDto
+    >(new LoginAdminGoogleCommand(dto.code, dto.idToken, ip, userAgent));
 
     AuthCookieHelper.setAuthCookies(
       res,

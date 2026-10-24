@@ -23,6 +23,8 @@ import { GetAvailabilityQueryHandler } from './application/queries/get-availabil
 import { GetInventoryBySkuQueryHandler } from './application/queries/get-inventory-by-sku/get-inventory-by-sku.handler.js';
 import { ListInventoryQueryHandler } from './application/queries/list-inventory/list-inventory.handler.js';
 import { GetInventoryMovementsQueryHandler } from './application/queries/get-inventory-movements/get-inventory-movements.handler.js';
+import { GetInventorySummaryQueryHandler } from './application/queries/get-inventory-summary/get-inventory-summary.handler.js';
+import { ListAllMovementsQueryHandler } from './application/queries/list-all-movements/list-all-movements.handler.js';
 
 import { OrderConfirmedInventoryHandler } from './application/event-handlers/order-confirmed.handler.js';
 import { OrderCancelledInventoryHandler } from './application/event-handlers/order-cancelled.handler.js';
@@ -67,6 +69,8 @@ import { NotificationModule } from '../notification/notification.module.js';
     GetInventoryBySkuQueryHandler,
     ListInventoryQueryHandler,
     GetInventoryMovementsQueryHandler,
+    GetInventorySummaryQueryHandler,
+    ListAllMovementsQueryHandler,
     OrderConfirmedInventoryHandler,
     OrderCancelledInventoryHandler,
     OrderReturnedInventoryHandler,

@@ -25,6 +25,8 @@ describe('ProcessWebhookCommandHandler', () => {
       findById: vi.fn(),
       findByOrderId: vi.fn(),
       findByTransactionId: vi.fn(),
+      findRefundsByPaymentId: vi.fn().mockResolvedValue([]),
+      findRefundsByOrderId: vi.fn().mockResolvedValue([]),
       processWebhookEventAtomic: vi
         .fn()
         .mockImplementation(async (_evt, callback) => {

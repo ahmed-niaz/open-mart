@@ -1,4 +1,12 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -30,11 +38,12 @@ const dbUrl =
   'postgresql://postgres:postgres@localhost:5432/openmart';
 
 describe('Discount & Promotion Module PostgreSQL Integration Tests', () => {
-  let client: postgres.Sql;
+  let client: postgres.Sql | null = null;
   let db: any;
   let discountRepo: DrizzleDiscountRepository;
   let redemptionRepo: DrizzleDiscountRedemptionRepository;
   let calculationAdapter: DiscountCalculationAdapter;
+  let isDbAvailable = false;
 
   const testCodesToClean: string[] = [];
   const testOrderIdsToClean: string[] = [];
@@ -57,19 +66,40 @@ describe('Discount & Promotion Module PostgreSQL Integration Tests', () => {
   }
 
   beforeAll(async () => {
-    client = postgres(dbUrl, { max: 2 });
-    db = drizzle(client);
+    try {
+      const testClient = postgres(dbUrl, {
+        max: 2,
+        connect_timeout: 2,
+        idle_timeout: 2,
+      });
+      await testClient`SELECT 1`;
+      client = testClient;
+      db = drizzle(client);
 
-    discountRepo = new DrizzleDiscountRepository(db);
-    redemptionRepo = new DrizzleDiscountRedemptionRepository(db);
-    calculationAdapter = new DiscountCalculationAdapter(
-      db,
-      discountRepo,
-      redemptionRepo,
-    );
+      discountRepo = new DrizzleDiscountRepository(db);
+      redemptionRepo = new DrizzleDiscountRedemptionRepository(db);
+      calculationAdapter = new DiscountCalculationAdapter(
+        db,
+        discountRepo,
+        redemptionRepo,
+      );
+      isDbAvailable = true;
+    } catch {
+      console.warn(
+        `PostgreSQL is not reachable at ${dbUrl}. Skipping discount integration tests.`,
+      );
+      isDbAvailable = false;
+    }
+  });
+
+  beforeEach((ctx) => {
+    if (!isDbAvailable) {
+      ctx.skip();
+    }
   });
 
   afterAll(async () => {
+    if (!isDbAvailable) return;
     try {
       if (testOrderIdsToClean.length > 0) {
         await db
