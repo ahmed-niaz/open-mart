@@ -120,7 +120,22 @@ export class ProductController {
   async list(
     @Query() queryDto: ListProductQueryDto,
   ): Promise<PaginatedResult<ProductResponseDto>> {
-    return this.findAll(queryDto);
+    return this.queryBus.execute<
+      ListProductQuery,
+      PaginatedResult<ProductResponseDto>
+    >(
+      new ListProductQuery({
+        page: queryDto.page,
+        limit: queryDto.limit,
+        offset: queryDto.offset,
+        search: queryDto.search?.trim(),
+        isActive: queryDto.isActive,
+        minPrice: queryDto.minPrice,
+        maxPrice: queryDto.maxPrice,
+        status: queryDto.status?.trim(),
+        category: queryDto.category?.trim(),
+      }),
+    );
   }
 
   @Get('all')
@@ -139,7 +154,7 @@ export class ProductController {
         isActive: queryDto.isActive,
         minPrice: queryDto.minPrice,
         maxPrice: queryDto.maxPrice,
-        status: queryDto.status?.trim(),
+        status: queryDto.status?.trim() || 'all',
         category: queryDto.category?.trim(),
       }),
     );

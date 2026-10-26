@@ -12,6 +12,9 @@ import {
   Image as ImageIcon,
   Save,
   Trash2,
+  Info,
+  Plus,
+  X,
 } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,8 +33,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useProduct, useProducts } from '@/hooks/admin/use-products';
+import {
+  useProduct,
+  useProducts,
+  type AdminProductVariant,
+} from '@/hooks/admin/use-products';
 import { useCategories } from '@/hooks/admin/use-categories';
+import { ProductVariantsManager } from '@/components/admin/products/product-variants-manager';
+import {
+  MediaPickerModal,
+  type SelectedMediaItem,
+} from '@/components/admin/media/media-picker-modal';
 
 const editProductSchema = z.object({
   title: z.string().min(2, 'Title must be at least 2 characters').max(255),
@@ -39,7 +51,7 @@ const editProductSchema = z.object({
   categoryId: z.string().optional(),
   description: z.string().optional(),
   inventoryQuantity: z.number().int().min(0),
-  isPublished: z.boolean(),
+  status: z.enum(['active', 'draft', 'archived']),
 });
 
 type EditProductFormData = z.infer<typeof editProductSchema>;
@@ -80,6 +92,49 @@ function EditProductForm({
     return [];
   });
 
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
+  const [variants, setVariants] = React.useState<AdminProductVariant[]>(
+    () => product.variants || [],
+  );
+
+  const handleMediaPickerSelect = (items: SelectedMediaItem[]) => {
+    setSelectedImages((prev) => {
+      const existingUrls = new Set(prev.map((img) => img.url));
+      const freshItems = items.filter((item) => !existingUrls.has(item.url));
+
+      if (freshItems.length === 0) {
+        toast.info('Selected image(s) are already attached to this product.');
+        return prev;
+      }
+
+      const newItems: SelectedImageItem[] = freshItems.map((item, idx) => ({
+        id:
+          item.id ||
+          `media-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 7)}`,
+        url: item.url,
+        name: item.originalName || item.url.split('/').pop() || 'media-asset',
+        isPrimary: prev.length === 0 && idx === 0,
+      }));
+
+      toast.success(`Attached ${newItems.length} image(s) from Media Library`);
+      return [...prev, ...newItems];
+    });
+    setIsMediaPickerOpen(false);
+  };
+
+  const handleRemoveImage = (id: string) => {
+    setSelectedImages((prev) => {
+      const filtered = prev.filter((img) => img.id !== id);
+      if (filtered.length > 0 && !filtered.some((img) => img.isPrimary)) {
+        filtered[0].isPrimary = true;
+      }
+      return filtered;
+    });
+    toast.info(
+      'Image detached from product. Asset remains safe in your Media Library.',
+    );
+  };
+
   const {
     register,
     handleSubmit,
@@ -94,11 +149,15 @@ function EditProductForm({
       categoryId: product.categoryId || '',
       description: product.description || '',
       inventoryQuantity: product.availableStock ?? 0,
-      isPublished: product.isPublished,
+      status:
+        (product.status as 'active' | 'draft' | 'archived') ||
+        (product.isPublished ? 'active' : 'draft'),
     },
   });
 
-  const isPublishedWatch = useWatch({ control, name: 'isPublished' });
+  const watchStatus = useWatch({ control, name: 'status' });
+  const watchUnitPrice = useWatch({ control, name: 'unitPrice' });
+  const watchInventory = useWatch({ control, name: 'inventoryQuantity' });
 
   const handleFiles = (files: FileList | File[]) => {
     const fileArray = Array.from(files);
@@ -125,8 +184,23 @@ function EditProductForm({
         description: data.description,
         priceBDT: data.unitPrice,
         categoryId: data.categoryId || undefined,
-        isPublished: data.isPublished,
+        status: data.status,
+        isPublished: data.status === 'active',
         inventoryQuantity: data.inventoryQuantity,
+        variants: variants.map((v) => ({
+          id: v.id,
+          name: v.name,
+          type: v.type,
+          color: v.color,
+          options: v.options,
+          sku: v.sku ? v.sku.trim().toUpperCase() : undefined,
+          priceBDT:
+            v.priceBDT !== undefined && !isNaN(v.priceBDT)
+              ? v.priceBDT
+              : data.unitPrice,
+          inventoryQuantity: v.inventoryQuantity ?? 0,
+          imageUrl: v.imageUrl,
+        })),
       });
 
       toast.success('Product updated successfully');
@@ -279,10 +353,45 @@ function EditProductForm({
                 />
                 <UploadCloud className="h-6 w-6 text-[#163A2B] mb-2" />
                 <p className="text-sm font-semibold text-[#252A25]">
-                  Click to add more images
+                  Add more images
                 </p>
-                <p className="text-xs text-[#6B756D]">
-                  Select 1 or multiple files
+                <p className="text-xs text-[#6B756D] mt-0.5 mb-3">
+                  Upload from your PC or choose from your Media Library
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs font-semibold text-[#252A25] shadow-2xs hover:bg-neutral-50 transition-colors cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5 text-[#163A2B]" />
+                    Upload from PC
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMediaPickerOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#163A2B] bg-[#163A2B] px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-[#214D3A] transition-colors cursor-pointer"
+                  >
+                    <ImageIcon className="h-3.5 w-3.5 text-white" />
+                    Select from Media Library
+                  </button>
+                </div>
+              </div>
+
+              {/* Safe Detach Disclaimer Banner */}
+              <div className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50/60 p-3 text-xs text-blue-900">
+                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong>Media Safe-Detach:</strong> Removing an image detaches
+                  it from this product only. The original asset remains safely
+                  preserved in your Centralized Media Library.
                 </p>
               </div>
 
@@ -291,7 +400,7 @@ function EditProductForm({
                   {selectedImages.map((img) => (
                     <div
                       key={img.id}
-                      className="relative aspect-square rounded-lg border border-[#E5E0D5] bg-white overflow-hidden p-1"
+                      className="relative aspect-square rounded-lg border border-[#E5E0D5] bg-white overflow-hidden p-1 group"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -304,12 +413,29 @@ function EditProductForm({
                           Primary
                         </span>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveImage(img.id)}
+                        className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 hover:bg-[#C53030] transition-all cursor-pointer"
+                        title="Detach image from product"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
             </CardContent>
           </Card>
+
+          {/* Card: Product Variants */}
+          <ProductVariantsManager
+            variants={variants}
+            onChange={setVariants}
+            baseSku={product.sku}
+            basePrice={watchUnitPrice}
+            baseStock={watchInventory}
+          />
         </div>
 
         {/* Right Column */}
@@ -354,56 +480,167 @@ function EditProductForm({
             </CardContent>
           </Card>
 
-          <Card className="border-[#E5E0D5] shadow-xs">
-            <CardHeader className="pb-4">
+          {/* Card: Catalog Status */}
+          <Card className="border-[#E5E0D5] bg-white shadow-xs">
+            <CardHeader className="pb-3 border-b border-[#E5E0D5]/60">
               <div className="flex items-center gap-2">
                 <Layers className="h-5 w-5 text-[#163A2B]" />
                 <CardTitle className="text-base font-semibold text-[#252A25]">
                   Catalog Status
                 </CardTitle>
               </div>
+              <CardDescription className="text-xs text-[#6B756D]">
+                Control storefront discovery and sales lifecycle.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setValue('isPublished', true)}
-                  className={`flex flex-col items-center justify-center rounded-lg border p-3 text-center transition-all ${
-                    isPublishedWatch
-                      ? 'border-[#163A2B] bg-[#163A2B]/10 font-bold text-[#163A2B]'
-                      : 'border-[#E5E0D5] bg-white text-[#6B756D]'
-                  }`}
-                >
-                  <span className="text-xs">Published</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setValue('isPublished', false)}
-                  className={`flex flex-col items-center justify-center rounded-lg border p-3 text-center transition-all ${
-                    !isPublishedWatch
-                      ? 'border-[#B7791F] bg-[#B7791F]/10 font-bold text-[#B7791F]'
-                      : 'border-[#E5E0D5] bg-white text-[#6B756D]'
-                  }`}
-                >
-                  <span className="text-xs">Draft</span>
-                </button>
-              </div>
-
-              <Button
-                type="submit"
-                form="edit-product-form"
-                variant="primary"
-                fullWidth
-                loading={isUpdating}
-                leftIcon={<Save className="h-4 w-4" />}
+            <CardContent className="pt-4 space-y-2.5">
+              {/* Published */}
+              <button
+                type="button"
+                onClick={() => setValue('status', 'active')}
+                className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  watchStatus === 'active'
+                    ? 'border-[#163A2B] bg-[#163A2B]/5 ring-1 ring-[#163A2B]'
+                    : 'border-[#E5E0D5] bg-white hover:bg-neutral-50'
+                }`}
               >
-                Save Changes
-              </Button>
+                <div
+                  className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border ${
+                    watchStatus === 'active'
+                      ? 'border-[#163A2B] bg-[#163A2B]'
+                      : 'border-[#E5E0D5] bg-white'
+                  }`}
+                >
+                  {watchStatus === 'active' && (
+                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-[#252A25]">
+                      Published
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-[#163A2B]/10 px-2 py-0.2 text-[10px] font-semibold text-[#163A2B]">
+                      Active
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-[#6B756D]">
+                    Visible to customers in storefront and available for
+                    purchase.
+                  </p>
+                </div>
+              </button>
+
+              {/* Draft */}
+              <button
+                type="button"
+                onClick={() => setValue('status', 'draft')}
+                className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  watchStatus === 'draft'
+                    ? 'border-[#B7791F] bg-[#B7791F]/5 ring-1 ring-[#B7791F]'
+                    : 'border-[#E5E0D5] bg-white hover:bg-neutral-50'
+                }`}
+              >
+                <div
+                  className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border ${
+                    watchStatus === 'draft'
+                      ? 'border-[#B7791F] bg-[#B7791F]'
+                      : 'border-[#E5E0D5] bg-white'
+                  }`}
+                >
+                  {watchStatus === 'draft' && (
+                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-[#252A25]">
+                      Draft
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-[#B7791F]/10 px-2 py-0.2 text-[10px] font-semibold text-[#B7791F]">
+                      Hidden
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-[#6B756D]">
+                    Hidden from storefront while edits or inventory are
+                    prepared.
+                  </p>
+                </div>
+              </button>
+
+              {/* Archived */}
+              <button
+                type="button"
+                onClick={() => setValue('status', 'archived')}
+                className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  watchStatus === 'archived'
+                    ? 'border-[#64748B] bg-[#64748B]/5 ring-1 ring-[#64748B]'
+                    : 'border-[#E5E0D5] bg-white hover:bg-neutral-50'
+                }`}
+              >
+                <div
+                  className={`mt-0.5 flex h-4 w-4 items-center justify-center rounded-full border ${
+                    watchStatus === 'archived'
+                      ? 'border-[#64748B] bg-[#64748B]'
+                      : 'border-[#E5E0D5] bg-white'
+                  }`}
+                >
+                  {watchStatus === 'archived' && (
+                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-[#252A25]">
+                      Archived
+                    </span>
+                    <span className="inline-flex items-center rounded-full bg-[#64748B]/10 px-2 py-0.2 text-[10px] font-semibold text-[#64748B]">
+                      Retired
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-[#6B756D]">
+                    Retired from catalog. Preserves sales reporting and past
+                    order links.
+                  </p>
+                </div>
+              </button>
+
+              <div className="pt-3 border-t border-[#E5E0D5]/70 space-y-2">
+                <Button
+                  type="submit"
+                  form="edit-product-form"
+                  variant="primary"
+                  fullWidth
+                  loading={isUpdating}
+                  leftIcon={<Save className="h-4 w-4" />}
+                  className="rounded-full"
+                >
+                  Save Changes
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  fullWidth
+                  onClick={() => router.push('/admin/products')}
+                  className="rounded-full"
+                >
+                  Cancel & Return
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
       </form>
+
+      {/* Centralized Media Picker Modal */}
+      <MediaPickerModal
+        isOpen={isMediaPickerOpen}
+        onClose={() => setIsMediaPickerOpen(false)}
+        onSelect={handleMediaPickerSelect}
+        multiple={true}
+        selectedUrls={selectedImages.map((img) => img.url)}
+      />
     </div>
   );
 }

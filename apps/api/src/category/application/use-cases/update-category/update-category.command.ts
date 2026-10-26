@@ -6,5 +6,6 @@ export class UpdateCategoryCommand {
     public readonly parentId?: string | null,
     public readonly imageUrl?: string | null,
     public readonly displayOrder?: number,
+    public readonly isActive?: boolean,
   ) {}
 }

@@ -11,7 +11,9 @@ export interface ModalProps {
   description?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl';
+  contentClassName?: string;
+  bodyClassName?: string;
 }
 
 export function Modal({
@@ -22,6 +24,8 @@ export function Modal({
   children,
   footer,
   maxWidth = 'md',
+  contentClassName,
+  bodyClassName,
 }: ModalProps) {
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,6 +49,8 @@ export function Modal({
     lg: 'max-w-lg',
     xl: 'max-w-xl',
     '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl',
   }[maxWidth];
 
   return (
@@ -58,31 +64,49 @@ export function Modal({
       {/* Dialog box */}
       <div
         className={cn(
-          'relative z-10 w-full rounded-2xl border border-[#E5E0D5] bg-white p-6 shadow-xl transition-all animate-in zoom-in-95',
+          'relative z-10 w-full rounded-2xl border border-[#E5E0D5] bg-white p-5 sm:p-6 shadow-xl transition-all animate-in zoom-in-95',
           maxWidthClasses,
+          contentClassName,
         )}
       >
-        <div className="flex items-start justify-between pb-4 border-b border-[#E5E0D5]/70">
-          <div>
+        <div className="flex items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-[#E5E0D5]/70">
+          <div className="min-w-0 flex-1 overflow-hidden pr-2">
             {title && (
-              <h3 className="text-lg font-bold text-[#163A2B]">{title}</h3>
+              <h3
+                className="text-base sm:text-lg font-bold text-[#163A2B] truncate"
+                title={title}
+              >
+                {title}
+              </h3>
             )}
             {description && (
-              <p className="mt-1 text-xs text-[#6B756D]">{description}</p>
+              <p
+                className="mt-1 text-xs text-[#6B756D] leading-relaxed"
+                title={description}
+              >
+                {description}
+              </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="rounded-full p-1.5 text-[#6B756D] hover:bg-neutral-100 hover:text-[#163A2B] transition-colors cursor-pointer"
+            className="shrink-0 rounded-full p-1.5 text-[#6B756D] hover:bg-neutral-100 hover:text-[#163A2B] transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="py-4 max-h-[75vh] overflow-y-auto">{children}</div>
+        <div
+          className={cn(
+            'py-3 sm:py-4 max-h-[75vh] overflow-y-auto',
+            bodyClassName,
+          )}
+        >
+          {children}
+        </div>
 
         {footer && (
-          <div className="pt-4 border-t border-[#E5E0D5]/70 flex flex-col sm:flex-row items-center gap-2">
+          <div className="pt-3 sm:pt-4 border-t border-[#E5E0D5]/70">
             {footer}
           </div>
         )}

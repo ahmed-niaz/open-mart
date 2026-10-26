@@ -11,4 +11,5 @@ export interface CategoryRepositoryPort {
   existsById(id: CategoryId): Promise<boolean>;
   existsBySlug(slug: Slug, excludeId?: CategoryId): Promise<boolean>;
   hasChildren(id: CategoryId): Promise<boolean>;
+  delete(id: CategoryId): Promise<void>;
 }

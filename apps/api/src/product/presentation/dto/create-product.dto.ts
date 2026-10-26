@@ -13,6 +13,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { ProductStatus } from '../../domain/entities/product.entity.js';
@@ -64,6 +65,10 @@ export class ProductVariantDto {
   options?: Record<string, string>;
 
   @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' && value.trim() === '' ? undefined : value,
+  )
+  @ValidateIf((_, val) => val !== undefined && val !== null && val !== '')
   @IsString()
   @Matches(/^[A-Za-z0-9-]+$/, {
     message: 'Variant SKU must contain only alphanumeric characters and dashes',

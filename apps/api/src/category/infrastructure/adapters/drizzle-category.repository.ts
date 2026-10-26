@@ -127,6 +127,12 @@ export class DrizzleCategoryRepository implements CategoryRepositoryPort {
     return rows.length > 0;
   }
 
+  async delete(id: CategoryId): Promise<void> {
+    await this.db
+      .delete(categoriesSchema)
+      .where(eq(categoriesSchema.id, id.getValue()));
+  }
+
   // --- Mappers ---
 
   public static toPersistence(category: Category): CategoryInsertRow {

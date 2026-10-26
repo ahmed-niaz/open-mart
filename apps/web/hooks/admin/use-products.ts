@@ -11,6 +11,19 @@ export interface ProductMedia {
   isPrimary: boolean;
 }
 
+export interface AdminProductVariant {
+  id?: string;
+  name?: string;
+  type?: string;
+  color?: string;
+  options?: Record<string, string>;
+  sku?: string;
+  priceCents?: number;
+  priceBDT?: number;
+  inventoryQuantity?: number;
+  imageUrl?: string;
+}
+
 export interface AdminProduct {
   id: string;
   title: string;
@@ -24,6 +37,7 @@ export interface AdminProduct {
   isPublished: boolean;
   version: number;
   media: ProductMedia[];
+  variants: AdminProductVariant[];
   availableStock?: number;
   createdAt: string;
   updatedAt: string;
@@ -39,6 +53,7 @@ export interface CreateProductInput {
   categoryId?: string;
   isPublished?: boolean;
   inventoryQuantity?: number;
+  variants?: AdminProductVariant[];
 }
 
 export interface UpdateProductInput {
@@ -50,7 +65,21 @@ export interface UpdateProductInput {
   priceCents?: number;
   categoryId?: string;
   isPublished?: boolean;
+  status?: 'active' | 'draft' | 'archived';
   inventoryQuantity?: number;
+  variants?: AdminProductVariant[];
+}
+
+interface RawProductVariantResponse {
+  id?: string;
+  name?: string;
+  type?: string;
+  color?: string;
+  options?: Record<string, string>;
+  sku?: string;
+  unitPrice?: number;
+  inventoryQuantity?: number;
+  imageUrl?: string;
 }
 
 interface RawProductResponse {
@@ -73,6 +102,7 @@ interface RawProductResponse {
     isThumbnail?: boolean;
     id?: string;
   }>;
+  variants?: RawProductVariantResponse[];
   inventoryQuantity?: number;
   availableStock?: number;
   createdAt: string;
@@ -89,6 +119,21 @@ function normalizeProduct(p: RawProductResponse): AdminProduct {
       }))
     : [];
 
+  const variants: AdminProductVariant[] = Array.isArray(p.variants)
+    ? p.variants.map((v) => ({
+        id: v.id,
+        name: v.name,
+        type: v.type,
+        color: v.color,
+        options: v.options,
+        sku: v.sku,
+        priceCents: v.unitPrice,
+        priceBDT: v.unitPrice !== undefined ? v.unitPrice / 100 : undefined,
+        inventoryQuantity: v.inventoryQuantity ?? 0,
+        imageUrl: v.imageUrl,
+      }))
+    : [];
+
   return {
     id: p.id,
     title: p.title || 'Untitled',
@@ -102,6 +147,7 @@ function normalizeProduct(p: RawProductResponse): AdminProduct {
     isPublished: p.status === 'active' || p.isPublished === true,
     version: p.version ?? 1,
     media: mediaList,
+    variants,
     availableStock: p.inventoryQuantity ?? p.availableStock ?? 0,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
@@ -114,6 +160,7 @@ export function useProducts(
     limit?: number;
     search?: string;
     status?: string;
+    category?: string;
   } = {},
 ) {
   const queryClient = useQueryClient();
@@ -121,6 +168,7 @@ export function useProducts(
   const limit = params.limit || 10;
   const search = params.search || undefined;
   const status = params.status || 'all';
+  const category = params.category || undefined;
 
   const productsQuery = useQuery<{
     products: AdminProduct[];
@@ -128,7 +176,7 @@ export function useProducts(
     page: number;
     totalPages: number;
   }>({
-    queryKey: ['admin-products', page, limit, search, status],
+    queryKey: ['admin-products', page, limit, search, status, category],
     queryFn: async (): Promise<{
       products: AdminProduct[];
       total: number;
@@ -145,8 +193,14 @@ export function useProducts(
             totalPages?: number;
           }
         | RawProductResponse[]
-      >('/api/products', {
-        params: { page, limit, search, status },
+      >('/api/products/all', {
+        params: {
+          page,
+          limit,
+          search: search || undefined,
+          status: status || 'all',
+          category: category || undefined,
+        },
       });
 
       let rawList: RawProductResponse[] = [];
@@ -186,8 +240,10 @@ export function useProducts(
         const input = data as CreateProductInput;
         const unitPrice =
           input.priceBDT !== undefined
-            ? Math.round(input.priceBDT * 100)
-            : (input.priceCents ?? 0);
+            ? input.priceBDT
+            : input.priceCents
+              ? input.priceCents / 100
+              : 0;
 
         body = JSON.stringify({
           title: input.title,
@@ -199,6 +255,17 @@ export function useProducts(
           status: input.isPublished ? 'active' : 'draft',
           inventoryQuantity: input.inventoryQuantity ?? 0,
           trackQuantity: true,
+          variants: input.variants?.map((v) => ({
+            id: v.id,
+            name: v.name,
+            type: v.type,
+            color: v.color,
+            options: v.options,
+            sku: v.sku,
+            unitPrice: v.priceBDT,
+            inventoryQuantity: v.inventoryQuantity ?? 0,
+            imageUrl: v.imageUrl,
+          })),
         });
       }
 
@@ -218,8 +285,10 @@ export function useProducts(
     mutationFn: async ({ id, ...data }: UpdateProductInput) => {
       const unitPrice =
         data.priceBDT !== undefined
-          ? Math.round(data.priceBDT * 100)
-          : data.priceCents;
+          ? data.priceBDT
+          : data.priceCents !== undefined
+            ? data.priceCents / 100
+            : undefined;
 
       return apiClient(`/api/products/${id}`, {
         method: 'PATCH',
@@ -229,12 +298,25 @@ export function useProducts(
           unitPrice,
           categoryId: data.categoryId || undefined,
           status:
-            data.isPublished !== undefined
-              ? data.isPublished
-                ? 'active'
-                : 'draft'
-              : undefined,
+            data.status !== undefined
+              ? data.status
+              : data.isPublished !== undefined
+                ? data.isPublished
+                  ? 'active'
+                  : 'draft'
+                : undefined,
           inventoryQuantity: data.inventoryQuantity,
+          variants: data.variants?.map((v) => ({
+            id: v.id,
+            name: v.name,
+            type: v.type,
+            color: v.color,
+            options: v.options,
+            sku: v.sku,
+            unitPrice: v.priceBDT,
+            inventoryQuantity: v.inventoryQuantity ?? 0,
+            imageUrl: v.imageUrl,
+          })),
         }),
       });
     },
@@ -258,6 +340,32 @@ export function useProducts(
     },
   });
 
+  const archiveProduct = useMutation({
+    mutationFn: async (id: string) => {
+      return apiClient(`/api/products/${id}/archive`, {
+        method: 'PATCH',
+      });
+    },
+    onSuccess: () => {
+      toast.success('Product archived successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      queryClient.invalidateQueries({ queryKey: ['store-products'] });
+    },
+  });
+
+  const restoreProduct = useMutation({
+    mutationFn: async (id: string) => {
+      return apiClient(`/api/products/${id}/restore`, {
+        method: 'PATCH',
+      });
+    },
+    onSuccess: () => {
+      toast.success('Product restored to draft successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      queryClient.invalidateQueries({ queryKey: ['store-products'] });
+    },
+  });
+
   return {
     products: productsQuery.data?.products || [],
     total: productsQuery.data?.total || 0,
@@ -271,6 +379,10 @@ export function useProducts(
     isUpdating: updateProduct.isPending,
     deleteProduct: deleteProduct.mutateAsync,
     isDeleting: deleteProduct.isPending,
+    archiveProduct: archiveProduct.mutateAsync,
+    isArchiving: archiveProduct.isPending,
+    restoreProduct: restoreProduct.mutateAsync,
+    isRestoring: restoreProduct.isPending,
   };
 }
 

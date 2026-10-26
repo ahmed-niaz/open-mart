@@ -309,11 +309,11 @@ export default function AdminOrdersPage() {
         title="Dispatch & Ship Order"
         description={`Fulfill and assign courier tracking to Order #${shippingOrder?.orderNumber || shippingOrder?.id.slice(0, 8)}`}
         footer={
-          <div className="flex w-full items-center gap-2">
+          <div className="flex w-full items-center justify-end gap-2">
             <Button
               type="button"
               variant="outline"
-              fullWidth
+              size="sm"
               onClick={() => setShippingOrder(null)}
               disabled={isShipping}
             >
@@ -322,7 +322,7 @@ export default function AdminOrdersPage() {
             <Button
               type="button"
               variant="primary"
-              fullWidth
+              size="sm"
               loading={isShipping}
               onClick={handleShipSubmit}
             >
@@ -354,7 +354,7 @@ export default function AdminOrdersPage() {
             onChange={(e) => setTrackingNumber(e.target.value)}
           />
 
-          <div className="rounded-lg bg-[#FAF7F0] p-3 text-xs text-[#6B756D] border border-[#E5E0D5]">
+          <div className="rounded-lg bg-neutral-50 p-3 text-xs text-[#6B756D] border border-[#E5E0D5]">
             <p className="font-semibold text-[#163A2B] mb-0.5">
               Automated Event Pipeline:
             </p>
@@ -388,82 +388,96 @@ export default function AdminOrdersPage() {
         description={`Placed on ${selectedOrder ? formatDate(selectedOrder.createdAt) : ''}`}
         footer={
           selectedOrder && (
-            <div className="flex w-full flex-col gap-2">
-              {selectedOrder.status === 'pending' && (
-                <Button
-                  variant="primary"
-                  fullWidth
-                  loading={isConfirming}
-                  onClick={async () => {
-                    await confirmOrder(selectedOrder.id);
-                    setSelectedOrder(null);
-                  }}
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  Confirm Order
-                </Button>
-              )}
+            <div className="flex w-full flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div>
+                {!['delivered', 'cancelled', 'returned'].includes(
+                  selectedOrder.status,
+                ) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 w-full sm:w-auto"
+                    onClick={() => {
+                      setCancellingOrder(selectedOrder);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    <XCircle className="h-3.5 w-3.5 shrink-0" />
+                    Cancel Order
+                  </Button>
+                )}
+              </div>
 
-              {selectedOrder.status === 'confirmed' && (
-                <Button
-                  variant="primary"
-                  fullWidth
-                  loading={isProcessing}
-                  onClick={async () => {
-                    await processOrder(selectedOrder.id);
-                    setSelectedOrder(null);
-                  }}
-                >
-                  <PackageCheck className="h-4 w-4" />
-                  Mark as Processing
-                </Button>
-              )}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                {selectedOrder.status === 'pending' && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    loading={isConfirming}
+                    className="w-full sm:w-auto"
+                    onClick={async () => {
+                      await confirmOrder(selectedOrder.id);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                    Confirm Order
+                  </Button>
+                )}
 
-              {(selectedOrder.status === 'confirmed' ||
-                selectedOrder.status === 'processing') && (
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  onClick={() => {
-                    setShippingOrder(selectedOrder);
-                    setSelectedOrder(null);
-                  }}
-                >
-                  <Truck className="h-4 w-4" />
-                  Ship Order
-                </Button>
-              )}
+                {selectedOrder.status === 'confirmed' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    loading={isProcessing}
+                    className="border-[#163A2B]/30 text-[#163A2B] hover:bg-[#163A2B]/5 w-full sm:w-auto"
+                    onClick={async () => {
+                      await processOrder(selectedOrder.id);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    <PackageCheck className="h-3.5 w-3.5 shrink-0" />
+                    Mark as Processing
+                  </Button>
+                )}
 
-              {selectedOrder.status === 'shipped' && (
-                <Button
-                  variant="primary"
-                  fullWidth
-                  loading={isDelivering}
-                  onClick={async () => {
-                    await deliverOrder(selectedOrder.id);
-                    setSelectedOrder(null);
-                  }}
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  Mark Delivered (Collect COD)
-                </Button>
-              )}
+                {(selectedOrder.status === 'confirmed' ||
+                  selectedOrder.status === 'processing') && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    className="w-full sm:w-auto"
+                    onClick={() => {
+                      setShippingOrder(selectedOrder);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    <Truck className="h-3.5 w-3.5 shrink-0" />
+                    Ship Order
+                  </Button>
+                )}
 
-              {!['delivered', 'cancelled', 'returned'].includes(
-                selectedOrder.status,
-              ) && (
-                <Button
-                  variant="destructive"
-                  fullWidth
-                  onClick={() => {
-                    setCancellingOrder(selectedOrder);
-                    setSelectedOrder(null);
-                  }}
-                >
-                  <XCircle className="h-4 w-4" />
-                  Cancel Order
-                </Button>
-              )}
+                {selectedOrder.status === 'shipped' && (
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    loading={isDelivering}
+                    className="w-full sm:w-auto"
+                    onClick={async () => {
+                      await deliverOrder(selectedOrder.id);
+                      setSelectedOrder(null);
+                    }}
+                  >
+                    <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                    Mark Delivered (Collect COD)
+                  </Button>
+                )}
+              </div>
             </div>
           )
         }
@@ -471,7 +485,7 @@ export default function AdminOrdersPage() {
         {selectedOrder && (
           <div className="space-y-6 text-sm">
             {/* Status overview */}
-            <div className="flex items-center justify-between rounded-xl border border-[#E5E0D5] bg-[#FAF7F0] p-4">
+            <div className="flex items-center justify-between rounded-xl border border-[#E5E0D5] bg-white p-4 shadow-2xs">
               <div>
                 <p className="text-xs text-[#6B756D]">Order Status</p>
                 <div className="mt-1">
@@ -538,7 +552,7 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* Pricing breakdown */}
-            <div className="rounded-xl border border-[#E5E0D5] bg-[#FAF7F0] p-4 space-y-2 text-xs">
+            <div className="rounded-xl border border-[#E5E0D5] bg-white p-4 space-y-2 text-xs shadow-2xs">
               <div className="flex justify-between text-[#6B756D]">
                 <span>Item Subtotal</span>
                 <span>{formatBDT(selectedOrder.subtotalAmount)}</span>

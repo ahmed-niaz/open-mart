@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: openmart-postgres
+    restart: unless-stopped
+    ports:
+      - '${POSTGRES_PORT:-6432}:5432'
+    env_file:
+      - apps/api/.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-openmart}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pgmart}
+      POSTGRES_DB: ${POSTGRES_DB:-open-mart}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${POSTGRES_USER:-openmart} -d ${POSTGRES_DB:-open-mart}',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    name: api_postgres_data

@@ -69,6 +69,14 @@ export class UpdateCategoryHandler implements ICommandHandler<UpdateCategoryComm
       displayOrder: command.displayOrder,
     });
 
+    if (command.isActive !== undefined) {
+      if (command.isActive) {
+        category.activate();
+      } else {
+        category.deactivate();
+      }
+    }
+
     await this.categoryRepository.save(category);
   }
 }

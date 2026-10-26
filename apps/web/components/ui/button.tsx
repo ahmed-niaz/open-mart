@@ -9,21 +9,22 @@ export const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          'bg-[#163A2B] text-white shadow-sm hover:bg-[#214D3A] active:bg-[#112a20]',
+          'bg-[#163A2B] text-white shadow-xs hover:bg-[#214D3A] active:bg-[#112a20]',
         secondary:
-          'bg-[#2F855A] text-white shadow-sm hover:bg-[#276749] active:bg-[#1e4e37]',
+          'bg-[#2F855A] text-white shadow-xs hover:bg-[#276749] active:bg-[#1e4e37]',
         outline:
-          'border border-[#E5E0D5] bg-white text-[#252A25] shadow-xs hover:bg-[#FAF7F0] hover:text-[#163A2B]',
-        ghost: 'text-[#252A25] hover:bg-[#E8DFD0]/50 hover:text-[#163A2B]',
+          'border border-[#E5E0D5] bg-white text-[#252A25] shadow-xs hover:bg-neutral-50 hover:text-[#163A2B]',
+        ghost: 'text-[#252A25] hover:bg-neutral-100 hover:text-[#163A2B]',
         destructive:
-          'bg-[#C53030] text-white shadow-sm hover:bg-[#9B2C2C] active:bg-[#742A2A]',
+          'bg-[#C53030] text-white shadow-xs hover:bg-[#9B2C2C] active:bg-[#742A2A]',
         surface: 'bg-[#E8DFD0] text-[#252A25] hover:bg-[#ded1bd]',
       },
       size: {
-        sm: 'h-8 px-4 text-xs rounded-full',
-        md: 'h-10 px-5 py-2 text-sm rounded-full',
-        lg: 'h-11 px-7 text-base rounded-full',
-        icon: 'h-9 w-9 p-0 rounded-full',
+        xs: 'h-7 px-3 text-xs font-semibold',
+        sm: 'h-8 px-3.5 text-xs font-semibold',
+        md: 'h-9 px-4 py-2 text-sm font-medium',
+        lg: 'h-10 px-6 text-sm font-semibold',
+        icon: 'h-9 w-9 p-0',
       },
       fullWidth: {
         true: 'w-full',
@@ -33,7 +34,7 @@ export const buttonVariants = cva(
     defaultVariants: {
       variant: 'primary',
       size: 'md',
-      fullWidth: true, // Default to full width per directive, easily overridden with fullWidth={false}
+      fullWidth: false,
     },
   },
 );
@@ -71,12 +72,16 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin text-current" />
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin text-current" />
         ) : (
-          leftIcon
+          leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>
         )}
-        <span>{children}</span>
-        {!loading && rightIcon}
+        <span className="inline-flex items-center gap-1.5 shrink-0">
+          {children}
+        </span>
+        {!loading && rightIcon && (
+          <span className="inline-flex shrink-0">{rightIcon}</span>
+        )}
       </button>
     );
   },

@@ -32,8 +32,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/select';
-import { useProducts } from '@/hooks/admin/use-products';
+import {
+  useProducts,
+  type AdminProductVariant,
+} from '@/hooks/admin/use-products';
 import { useCategories } from '@/hooks/admin/use-categories';
+import { ProductVariantsManager } from '@/components/admin/products/product-variants-manager';
+import {
+  MediaPickerModal,
+  type SelectedMediaItem,
+} from '@/components/admin/media/media-picker-modal';
 
 const createProductSchema = z.object({
   title: z.string().min(2, 'Title must be at least 2 characters').max(255),
@@ -79,6 +87,33 @@ export default function NewProductPage() {
   const [urlInput, setUrlInput] = React.useState('');
   const [showUrlField, setShowUrlField] = React.useState(false);
   const [isDragging, setIsDragging] = React.useState(false);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState(false);
+  const [variants, setVariants] = React.useState<AdminProductVariant[]>([]);
+
+  const handleMediaPickerSelect = (items: SelectedMediaItem[]) => {
+    setSelectedImages((prev) => {
+      const existingUrls = new Set(prev.map((img) => img.url));
+      const freshItems = items.filter((item) => !existingUrls.has(item.url));
+
+      if (freshItems.length === 0) {
+        toast.info('Selected image(s) are already attached to this product.');
+        return prev;
+      }
+
+      const newItems: SelectedImageItem[] = freshItems.map((item, idx) => ({
+        id:
+          item.id ||
+          `media-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 7)}`,
+        url: item.url,
+        name: item.originalName || item.url.split('/').pop() || 'media-asset',
+        isPrimary: prev.length === 0 && idx === 0,
+      }));
+
+      toast.success(`Attached ${newItems.length} image(s) from Media Library`);
+      return [...prev, ...newItems];
+    });
+    setIsMediaPickerOpen(false);
+  };
 
   const {
     register,
@@ -103,6 +138,9 @@ export default function NewProductPage() {
   });
 
   const isPublishedWatch = useWatch({ control, name: 'isPublished' });
+  const watchSku = useWatch({ control, name: 'sku' });
+  const watchUnitPrice = useWatch({ control, name: 'unitPrice' });
+  const watchInventory = useWatch({ control, name: 'inventoryQuantity' });
 
   // Handle files selected via file input or drag-and-drop (single or multiple)
   const handleFiles = (files: FileList | File[]) => {
@@ -223,6 +261,22 @@ export default function NewProductPage() {
 
       if (urlMedia.length > 0) {
         formData.append('media', JSON.stringify(urlMedia));
+      }
+
+      if (variants.length > 0) {
+        const formattedVariants = variants.map((v) => ({
+          name: v.name,
+          type: v.type,
+          color: v.color,
+          options: v.options,
+          sku: v.sku ? v.sku.trim().toUpperCase() : undefined,
+          unitPrice:
+            v.priceBDT !== undefined && !isNaN(v.priceBDT)
+              ? v.priceBDT
+              : data.unitPrice,
+          inventoryQuantity: v.inventoryQuantity ?? 0,
+        }));
+        formData.append('variants', JSON.stringify(formattedVariants));
       }
 
       await createProduct(formData);
@@ -403,9 +457,29 @@ export default function NewProductPage() {
                   Select 1 or many images at once (PNG, JPG, WebP up to 10MB
                   each)
                 </p>
-                <div className="mt-3 inline-flex items-center gap-1.5 rounded-md border border-[#E5E0D5] bg-white px-3 py-1 text-xs font-medium text-[#252A25] shadow-2xs">
-                  <Plus className="h-3.5 w-3.5 text-[#163A2B]" />
-                  Choose Files
+                <div className="mt-3 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs font-semibold text-[#252A25] shadow-2xs hover:bg-neutral-50 transition-colors cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5 text-[#163A2B]" />
+                    Upload from PC
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsMediaPickerOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#163A2B] bg-[#163A2B] px-3.5 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-[#214D3A] transition-colors cursor-pointer"
+                  >
+                    <ImageIcon className="h-3.5 w-3.5 text-white" />
+                    Select from Media Library
+                  </button>
                 </div>
               </div>
 
@@ -524,6 +598,15 @@ export default function NewProductPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Card: Product Variants */}
+          <ProductVariantsManager
+            variants={variants}
+            onChange={setVariants}
+            baseSku={watchSku}
+            basePrice={watchUnitPrice}
+            baseStock={watchInventory}
+          />
         </div>
 
         {/* Right Column (1 col): Pricing, Inventory & Status */}
@@ -694,6 +777,15 @@ export default function NewProductPage() {
           </Card>
         </div>
       </form>
+
+      {/* Centralized Media Picker Modal */}
+      <MediaPickerModal
+        isOpen={isMediaPickerOpen}
+        onClose={() => setIsMediaPickerOpen(false)}
+        onSelect={handleMediaPickerSelect}
+        multiple={true}
+        selectedUrls={selectedImages.map((img) => img.url)}
+      />
     </div>
   );
 }

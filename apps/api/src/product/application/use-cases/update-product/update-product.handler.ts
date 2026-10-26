@@ -86,22 +86,44 @@ export class UpdateProductHandler implements ICommandHandler<
         ? Money.create(command.compareAtPrice, currency)
         : undefined;
 
-    // 5. Map Variants if provided
+    // 5. Map Variants if provided & Enforce Variant SKU Invariants
+    const seenVariantSkus = new Set<string>();
     const variants: ProductVariant[] | undefined =
       command.variants !== undefined
-        ? command.variants.map((v) => ({
-            id: v.id ?? randomUUID(),
-            name: v.name,
-            type: v.type,
-            color: v.color,
-            options: v.options,
-            sku: v.sku ? SKU.create(v.sku) : undefined,
-            unitPrice:
-              v.unitPrice !== undefined
-                ? Money.create(v.unitPrice, currency)
-                : undefined,
-            inventoryQuantity: v.inventoryQuantity ?? 0,
-          }))
+        ? command.variants.map((v) => {
+            let variantSku: SKU | undefined;
+            if (v.sku && v.sku.trim() !== '') {
+              const trimmedSku = v.sku.trim().toUpperCase();
+              if (trimmedSku === product.sku.getValue()) {
+                throw new ApplicationException(
+                  `Variant SKU '${trimmedSku}' cannot be identical to the parent product SKU.`,
+                  ApplicationExceptionCode.CONFLICT,
+                );
+              }
+              if (seenVariantSkus.has(trimmedSku)) {
+                throw new ApplicationException(
+                  `Duplicate variant SKU '${trimmedSku}' detected within product.`,
+                  ApplicationExceptionCode.CONFLICT,
+                );
+              }
+              seenVariantSkus.add(trimmedSku);
+              variantSku = SKU.create(trimmedSku);
+            }
+
+            return {
+              id: v.id ?? randomUUID(),
+              name: v.name,
+              type: v.type,
+              color: v.color,
+              options: v.options,
+              sku: variantSku,
+              unitPrice:
+                v.unitPrice !== undefined
+                  ? Money.create(v.unitPrice, currency)
+                  : undefined,
+              inventoryQuantity: v.inventoryQuantity ?? 0,
+            };
+          })
         : undefined;
 
     // 6. Mutate Aggregate Root (Enforces Domain Invariants)

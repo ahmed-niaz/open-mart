@@ -62,7 +62,7 @@ export function SlideOver({
           )}
         >
           {/* Header */}
-          <div className="flex items-start justify-between px-6 py-5 border-b border-[#E5E0D5]/70 bg-[#F8F9FA]">
+          <div className="flex items-start justify-between px-6 py-5 border-b border-[#E5E0D5]/70 bg-white">
             <div>
               {title && (
                 <h3 className="text-lg font-bold text-[#163A2B]">{title}</h3>
@@ -73,7 +73,7 @@ export function SlideOver({
             </div>
             <button
               onClick={onClose}
-              className="rounded-full p-1.5 text-[#6B756D] hover:bg-white hover:text-[#163A2B] transition-colors cursor-pointer"
+              className="rounded-full p-1.5 text-[#6B756D] hover:bg-neutral-100 hover:text-[#163A2B] transition-colors cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -84,7 +84,7 @@ export function SlideOver({
 
           {/* Footer */}
           {footer && (
-            <div className="px-6 py-4 border-t border-[#E5E0D5]/70 bg-[#FAF7F0]/40 flex flex-col gap-2">
+            <div className="px-6 py-4 border-t border-[#E5E0D5]/70 bg-white shrink-0">
               {footer}
             </div>
           )}

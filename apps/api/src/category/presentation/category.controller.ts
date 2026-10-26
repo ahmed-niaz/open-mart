@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -20,6 +21,7 @@ import { CreateCategoryCommand } from '../application/use-cases/create-category/
 import { UpdateCategoryCommand } from '../application/use-cases/update-category/update-category.command.js';
 import { ActivateCategoryCommand } from '../application/use-cases/activate-category/activate-category.command.js';
 import { DeactivateCategoryCommand } from '../application/use-cases/deactivate-category/deactivate-category.command.js';
+import { DeleteCategoryCommand } from '../application/use-cases/delete-category/delete-category.command.js';
 import { GetCategoryTreeQuery } from '../application/queries/get-category-tree/get-category-tree.query.js';
 import { GetCategoryByIdQuery } from '../application/queries/get-category-by-id/get-category-by-id.query.js';
 import { GetCategoryBySlugQuery } from '../application/queries/get-category-by-slug/get-category-by-slug.query.js';
@@ -100,6 +102,7 @@ export class CategoryController {
       dto.parentId,
       dto.imageUrl,
       dto.displayOrder,
+      dto.isActive,
     );
     await this.commandBus.execute(command);
     return { success: true };
@@ -121,5 +124,14 @@ export class CategoryController {
     const command = new DeactivateCategoryCommand(id);
     await this.commandBus.execute(command);
     return { success: true };
+  }
+
+  @Delete(':id')
+  async delete(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const command = new DeleteCategoryCommand(id);
+    await this.commandBus.execute(command);
+    return { success: true, message: 'Category deleted successfully' };
   }
 }

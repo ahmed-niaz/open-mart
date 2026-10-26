@@ -15,6 +15,7 @@ import {
   LogOut,
   ShoppingBag,
   ExternalLink,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useAdminAuth } from '@/hooks/admin/use-admin-auth';
 import { cn } from '@/lib/utils';
@@ -53,6 +54,11 @@ const NAVIGATION_GROUPS: NavGroup[] = [
         title: 'Categories',
         href: '/admin/categories',
         icon: Layers,
+      },
+      {
+        title: 'Media Library',
+        href: '/admin/media',
+        icon: ImageIcon,
       },
     ],
   },

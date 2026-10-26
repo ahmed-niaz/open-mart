@@ -10,6 +10,7 @@ export interface Category {
   slug: string;
   description?: string;
   parentId?: string | null;
+  parentName?: string;
   isPublished: boolean;
   children?: Category[];
 }
@@ -20,6 +21,7 @@ export interface RawCategoryResponse {
   slug: string;
   description?: string;
   parentId?: string | null;
+  parentName?: string;
   isActive?: boolean;
   isPublished?: boolean;
   children?: Category[];
@@ -42,12 +44,21 @@ export function useCategories() {
           ? res.data
           : [];
 
+      // Map to map for parentName lookup
+      const nameMap = new Map<string, string>();
+      rawList.forEach((c) => {
+        if (c.id && c.name) nameMap.set(c.id, c.name);
+      });
+
       return rawList.map((c: RawCategoryResponse) => ({
         id: c.id,
         name: c.name,
         slug: c.slug,
         description: c.description || '',
         parentId: c.parentId || null,
+        parentName: c.parentId
+          ? nameMap.get(c.parentId) || 'Parent Category'
+          : undefined,
         isPublished: c.isActive !== false,
         children: c.children || [],
       }));
@@ -74,6 +85,67 @@ export function useCategories() {
     onSuccess: () => {
       toast.success('Category created successfully');
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    },
+  });
+
+  const updateCategory = useMutation({
+    mutationFn: async (data: {
+      id: string;
+      name?: string;
+      description?: string;
+      parentId?: string | null;
+      isPublished?: boolean;
+    }) => {
+      return apiClient(`/api/categories/${data.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          parentId: data.parentId === '' ? null : data.parentId,
+          isActive: data.isPublished,
+        }),
+      });
+    },
+    onSuccess: () => {
+      toast.success('Category updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    },
+  });
+
+  const deleteCategory = useMutation({
+    mutationFn: async (id: string) => {
+      return apiClient(`/api/categories/${id}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      toast.success('Category deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+    },
+  });
+
+  const toggleCategoryStatus = useMutation({
+    mutationFn: async ({
+      id,
+      isPublished,
+    }: {
+      id: string;
+      isPublished: boolean;
+    }) => {
+      return apiClient(
+        `/api/categories/${id}/${isPublished ? 'activate' : 'deactivate'}`,
+        {
+          method: 'PATCH',
+        },
+      );
+    },
+    onSuccess: () => {
+      toast.success('Category status updated');
+      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     },
   });
 
@@ -82,5 +154,11 @@ export function useCategories() {
     isLoading: categoriesQuery.isLoading,
     createCategory: createCategory.mutateAsync,
     isCreating: createCategory.isPending,
+    updateCategory: updateCategory.mutateAsync,
+    isUpdating: updateCategory.isPending,
+    deleteCategory: deleteCategory.mutateAsync,
+    isDeleting: deleteCategory.isPending,
+    toggleCategoryStatus: toggleCategoryStatus.mutateAsync,
+    isToggling: toggleCategoryStatus.isPending,
   };
 }

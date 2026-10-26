@@ -20,6 +20,7 @@ import { DiscountModule } from './discount/discount.module.js';
 import { CartModule } from './cart/cart.module.js';
 import { OutboxModule } from './shared/infrastructure/outbox/outbox.module.js';
 import { IdempotencyModule } from './shared/infrastructure/idempotency/idempotency.module.js';
+import { MediaModule } from './media/media.module.js';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { IdempotencyModule } from './shared/infrastructure/idempotency/idempoten
     CartModule,
     OutboxModule,
     IdempotencyModule,
+    MediaModule,
   ],
   controllers: [],
   providers: [

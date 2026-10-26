@@ -75,20 +75,42 @@ export class CreateProductHandler implements ICommandHandler<
         ? Money.create(command.compareAtPrice, command.currency)
         : undefined;
 
-    // 5. Map Variants to Domain Models
-    const variants: ProductVariant[] = (command.variants ?? []).map((v) => ({
-      id: v.id ?? randomUUID(),
-      name: v.name,
-      type: v.type,
-      color: v.color,
-      options: v.options,
-      sku: v.sku ? SKU.create(v.sku) : undefined,
-      unitPrice:
-        v.unitPrice !== undefined
-          ? Money.create(v.unitPrice, command.currency)
-          : undefined,
-      inventoryQuantity: v.inventoryQuantity ?? 0,
-    }));
+    // 5. Map Variants to Domain Models & Enforce Variant SKU Invariants
+    const seenVariantSkus = new Set<string>();
+    const variants: ProductVariant[] = (command.variants ?? []).map((v) => {
+      let variantSku: SKU | undefined;
+      if (v.sku && v.sku.trim() !== '') {
+        const trimmedSku = v.sku.trim().toUpperCase();
+        if (trimmedSku === skuVo.getValue()) {
+          throw new ApplicationException(
+            `Variant SKU '${trimmedSku}' cannot be identical to the parent product SKU.`,
+            ApplicationExceptionCode.CONFLICT,
+          );
+        }
+        if (seenVariantSkus.has(trimmedSku)) {
+          throw new ApplicationException(
+            `Duplicate variant SKU '${trimmedSku}' detected within product.`,
+            ApplicationExceptionCode.CONFLICT,
+          );
+        }
+        seenVariantSkus.add(trimmedSku);
+        variantSku = SKU.create(trimmedSku);
+      }
+
+      return {
+        id: v.id ?? randomUUID(),
+        name: v.name,
+        type: v.type,
+        color: v.color,
+        options: v.options,
+        sku: variantSku,
+        unitPrice:
+          v.unitPrice !== undefined
+            ? Money.create(v.unitPrice, command.currency)
+            : undefined,
+        inventoryQuantity: v.inventoryQuantity ?? 0,
+      };
+    });
 
     // 6. Instantiate Aggregate Root (Enforces Domain Invariants)
     const product = Product.create({

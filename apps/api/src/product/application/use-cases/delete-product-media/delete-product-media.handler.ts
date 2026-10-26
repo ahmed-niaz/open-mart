@@ -5,10 +5,6 @@ import {
   PRODUCT_REPOSITORY,
   type ProductRepositoryPort,
 } from '../../ports/product.repository.js';
-import {
-  STORAGE_SERVICE,
-  type StoragePort,
-} from '../../../../shared/application/ports/storage.port.js';
 import { ProductId } from '../../../domain/value-objects/product-id.vo.js';
 import {
   ApplicationException,
@@ -25,8 +21,6 @@ export class DeleteProductMediaHandler implements ICommandHandler<
   constructor(
     @Inject(PRODUCT_REPOSITORY)
     private readonly productRepository: ProductRepositoryPort,
-    @Inject(STORAGE_SERVICE)
-    private readonly storageService: StoragePort,
   ) {}
 
   async execute(command: DeleteProductMediaCommand): Promise<void> {
@@ -41,24 +35,17 @@ export class DeleteProductMediaHandler implements ICommandHandler<
       );
     }
 
-    // 2. Remove media asset from Domain Aggregate (enforces invariant)
+    // 2. Remove media asset reference from Domain Aggregate (enforces invariant)
     product.removeMedia(command.mediaUrl);
 
     // 3. Persist state change (Atomic OCC Update)
     await this.productRepository.save(product);
 
-    // 4. Purge media asset from Cloudflare R2
-    try {
-      const urlObj = new URL(command.mediaUrl);
-      const key = urlObj.pathname.replace(/^\/+/, '');
-      if (key) {
-        await this.storageService.delete(key);
-        this.logger.log(`Purged media asset from Cloudflare R2: ${key}`);
-      }
-    } catch {
-      this.logger.warn(
-        `Could not parse or delete R2 storage key for URL: ${command.mediaUrl}`,
-      );
-    }
+    // 4. Note: Per architecture rules, detaching an image from a product NEVER deletes
+    // the underlying file from Cloudflare R2 or the database. Physical deletion is strictly
+    // restricted to the centralized Media Library module.
+    this.logger.log(
+      `Detached media '${command.mediaUrl}' from product '${command.productId}'. Underlying asset preserved in Media Library.`,
+    );
   }
 }
