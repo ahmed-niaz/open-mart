@@ -21,6 +21,7 @@ import { CartModule } from './cart/cart.module.js';
 import { OutboxModule } from './shared/infrastructure/outbox/outbox.module.js';
 import { IdempotencyModule } from './shared/infrastructure/idempotency/idempotency.module.js';
 import { MediaModule } from './media/media.module.js';
+import { HealthModule } from './shared/infrastructure/health/health.module.js';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { MediaModule } from './media/media.module.js';
     OutboxModule,
     IdempotencyModule,
     MediaModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [

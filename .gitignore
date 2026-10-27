@@ -6,11 +6,21 @@ out
 .turbo
 *.log
 *.tsbuildinfo
-.env*.local
 .DS_Store
+
+# Environment configuration files
+.env
+.env.*
+.env*.local
+!.env.example
+!apps/api/.env.example
+!apps/web/.env.example
+
+# Database backups & snapshots (CRITICAL: Never commit customer/financial dumps)
+backups/
+*.sql.gz
+*.dump
 
 # Architecture rules
 DDD_CLEAN_ARCHITECTURE_RULES.md
-GEMINI.md
 AGENTS.md
-

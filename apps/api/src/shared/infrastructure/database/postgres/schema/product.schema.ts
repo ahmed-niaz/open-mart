@@ -82,7 +82,11 @@ export const productsSchema = pgTable(
       .notNull()
       .defaultNow(),
   },
-  (table) => [index('products_category_id_idx').on(table.categoryId)],
+  (table) => [
+    index('products_category_id_idx').on(table.categoryId),
+    index('products_status_created_at_idx').on(table.status, table.createdAt),
+    index('products_category_status_idx').on(table.categoryId, table.status),
+  ],
 );
 
 export type ProductSelectRow = typeof productsSchema.$inferSelect;
