@@ -27,6 +27,7 @@ import { GetCategoryByIdQuery } from '../application/queries/get-category-by-id/
 import { GetCategoryBySlugQuery } from '../application/queries/get-category-by-slug/get-category-by-slug.query.js';
 import { ListCategoriesQuery } from '../application/queries/list-categories/list-categories.query.js';
 import { PaginatedResult } from '../../shared/application/pagination/paginated-result.js';
+import { PublicCache } from '../../shared/infrastructure/http/public-cache.decorator.js';
 
 @Controller('categories')
 export class CategoryController {
@@ -50,6 +51,7 @@ export class CategoryController {
   }
 
   @Get('tree')
+  @PublicCache({ sMaxAge: 300, staleWhileRevalidate: 600 })
   async getTree(
     @Query('includeInactive') includeInactive?: string,
   ): Promise<CategoryTreeNodeDto[]> {
@@ -58,6 +60,7 @@ export class CategoryController {
   }
 
   @Get()
+  @PublicCache({ sMaxAge: 300, staleWhileRevalidate: 600 })
   async list(
     @Query() queryDto: ListCategoryQueryDto,
   ): Promise<PaginatedResult<CategoryResponseDto>> {
@@ -77,12 +80,14 @@ export class CategoryController {
   }
 
   @Get('slug/:slug')
+  @PublicCache({ sMaxAge: 300, staleWhileRevalidate: 600 })
   async getBySlug(@Param('slug') slug: string): Promise<CategoryResponseDto> {
     const query = new GetCategoryBySlugQuery(slug);
     return await this.queryBus.execute(query);
   }
 
   @Get(':id')
+  @PublicCache({ sMaxAge: 300, staleWhileRevalidate: 600 })
   async getById(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CategoryResponseDto> {

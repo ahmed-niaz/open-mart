@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { CqrsModule } from '@nestjs/cqrs';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -22,6 +22,7 @@ import { OutboxModule } from './shared/infrastructure/outbox/outbox.module.js';
 import { IdempotencyModule } from './shared/infrastructure/idempotency/idempotency.module.js';
 import { MediaModule } from './media/media.module.js';
 import { HealthModule } from './shared/infrastructure/health/health.module.js';
+import { HttpCacheInterceptor } from './shared/infrastructure/http/public-cache.interceptor.js';
 
 @Module({
   imports: [
@@ -64,6 +65,10 @@ import { HealthModule } from './shared/infrastructure/health/health.module.js';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpCacheInterceptor,
     },
   ],
 })

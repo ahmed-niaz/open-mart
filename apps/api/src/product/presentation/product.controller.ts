@@ -38,6 +38,7 @@ import {
   STORAGE_SERVICE,
   type StoragePort,
 } from '../../shared/application/ports/storage.port.js';
+import { PublicCache } from '../../shared/infrastructure/http/public-cache.decorator.js';
 
 @Controller('products')
 export class ProductController {
@@ -117,6 +118,7 @@ export class ProductController {
   }
 
   @Get()
+  @PublicCache({ sMaxAge: 60, staleWhileRevalidate: 120 })
   async list(
     @Query() queryDto: ListProductQueryDto,
   ): Promise<PaginatedResult<ProductResponseDto>> {
@@ -161,6 +163,7 @@ export class ProductController {
   }
 
   @Get('sku/:sku')
+  @PublicCache({ sMaxAge: 60, staleWhileRevalidate: 120 })
   async findBySku(@Param('sku') sku: string): Promise<ProductResponseDto> {
     return this.queryBus.execute<GetProductBySkuQuery, ProductResponseDto>(
       new GetProductBySkuQuery(sku),
@@ -168,6 +171,7 @@ export class ProductController {
   }
 
   @Get(':id')
+  @PublicCache({ sMaxAge: 60, staleWhileRevalidate: 120 })
   async findById(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ProductResponseDto> {

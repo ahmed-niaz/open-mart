@@ -5,6 +5,22 @@ const nextConfig: NextConfig = {
   experimental: {
     staticGenerationMaxConcurrency: 1,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.r2.dev',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.openmart.com',
+      },
+    ],
+  },
   async rewrites() {
     return [
       {

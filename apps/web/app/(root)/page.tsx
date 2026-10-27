@@ -4,7 +4,6 @@ import * as React from 'react';
 import Link from 'next/link';
 import {
   ShoppingBag,
-  Search,
   ShieldCheck,
   Truck,
   RotateCcw,
@@ -13,12 +12,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useProducts, type AdminProduct } from '@/hooks/admin/use-products';
 import { useCategories } from '@/hooks/admin/use-categories';
 import { formatBDT } from '@/lib/utils';
+import { StorefrontHeader } from '@/components/storefront/header/storefront-header';
 
 export default function StorefrontHomePage() {
   const [selectedCategory, setSelectedCategory] = React.useState<string>('all');
@@ -48,77 +47,14 @@ export default function StorefrontHomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#252A25]">
-      {/* Top Notification Bar */}
-      <div className="bg-[#163A2B] px-4 py-2 text-center text-xs font-medium text-[#FAF7F0]">
-        ✨ Free delivery across Bangladesh on orders over ৳ 2,000 |
-        Direct-to-Consumer Quality
-      </div>
-
-      {/* Main Storefront Navigation */}
-      <header className="sticky top-0 z-40 border-b border-[#E5E0D5] bg-[#FAF7F0]/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#163A2B] text-white font-bold text-lg shadow-sm">
-              OM
-            </div>
-            <div>
-              <span className="text-xl font-bold tracking-tight text-[#163A2B]">
-                OPEN-MART
-              </span>
-              <span className="block text-[10px] font-semibold uppercase tracking-wider text-[#6B756D]">
-                Single-Vendor Store
-              </span>
-            </div>
-          </Link>
-
-          {/* Search bar (desktop) */}
-          <div className="hidden md:block w-96">
-            <Input
-              placeholder="Search handcrafted products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              leftIcon={<Search className="h-4 w-4" />}
-              className="bg-white"
-            />
-          </div>
-
-          {/* Navigation Actions */}
-          <div className="flex items-center gap-3">
-            <Link
-              href="/admin"
-              className="hidden sm:inline-flex items-center rounded-lg border border-[#E5E0D5] bg-white px-3 py-1.5 text-xs font-semibold text-[#163A2B] hover:bg-[#FAF7F0] transition-colors"
-            >
-              Admin Dashboard
-            </Link>
-
-            <button
-              type="button"
-              onClick={() => toast.info('Cart drawer will open here')}
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#E5E0D5] bg-white text-[#163A2B] hover:bg-[#FAF7F0] transition-colors"
-              aria-label="View shopping bag"
-            >
-              <ShoppingBag className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#163A2B] text-[10px] font-bold text-white shadow-xs">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Search Input */}
-        <div className="px-4 pb-3 md:hidden">
-          <Input
-            placeholder="Search products..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            leftIcon={<Search className="h-4 w-4" />}
-            className="bg-white"
-          />
-        </div>
-      </header>
+      {/* Main Storefront Header & Mega Menu Navigation */}
+      <StorefrontHeader
+        cartCount={cartCount}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        onCartClick={() => toast.info('Shopping bag drawer ready for checkout')}
+        onWishlistClick={() => toast.info('Wishlist saved items')}
+      />
 
       {/* Hero Banner */}
       <section className="relative overflow-hidden border-b border-[#E5E0D5] bg-gradient-to-b from-[#163A2B]/5 to-transparent py-12 sm:py-16">
