@@ -27,15 +27,26 @@ export function StorefrontHeader({
   onWishlistClick,
   customNavItems,
 }: StorefrontHeaderProps) {
-  const navItems = customNavItems || DEFAULT_NAV_ITEMS;
+  const navItems =
+    customNavItems && customNavItems.length > 0
+      ? customNavItems
+      : DEFAULT_NAV_ITEMS;
 
   // Active mega menu tab (e.g. 'women', 'men') or null if closed
   const [activeNavId, setActiveNavId] = React.useState<string | null>(null);
   const [isMobileNavOpen, setIsMobileNavOpen] = React.useState<boolean>(false);
   const [localSearch, setLocalSearch] = React.useState<string>(searchQuery);
+  const [headerHeight, setHeaderHeight] = React.useState<number>(100);
 
-  // Timer reference for hover grace period
+  const headerRef = React.useRef<HTMLElement | null>(null);
   const closeTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Measure dynamic header height for seamless backdrop placement
+  React.useEffect(() => {
+    if (headerRef.current) {
+      setHeaderHeight(headerRef.current.offsetHeight);
+    }
+  }, []);
 
   const clearCloseTimeout = React.useCallback(() => {
     if (closeTimeoutRef.current) {
@@ -53,7 +64,7 @@ export function StorefrontHeader({
     clearCloseTimeout();
     closeTimeoutRef.current = setTimeout(() => {
       setActiveNavId(null);
-    }, 180); // 180ms grace window prevents abrupt closing
+    }, 200); // 200ms grace window prevents abrupt closing when moving between elements
   };
 
   const handleCloseMegaMenu = () => {
@@ -72,19 +83,21 @@ export function StorefrontHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white border-b border-[#E5E0D5]">
+      <header
+        ref={headerRef}
+        className="sticky top-0 z-40 bg-white border-b border-[#E5E0D5]"
+      >
         {/* 1. Top Announcement Bar */}
         <div className="bg-[#163A2B] px-4 py-2 text-center text-xs font-medium text-[#FAF7F0] tracking-wide">
           <span className="inline-block animate-pulse mr-1.5">✨</span>
-          Free delivery across Bangladesh on orders over ৳ 2,000 |
-          Direct-to-Consumer Quality
+          Free delivery across Bangladesh on orders over ৳ 2,000 | Direct-to-Consumer Quality
         </div>
 
         {/* 2. Main 3-Zone Navigation Header */}
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-4">
-            {/* ZONE 1 (Left): Top-Level Navigation Tabs */}
-            <div className="flex items-center gap-2 lg:gap-6">
+            {/* ZONE 1 (Left): Top-Level Navigation Links (Gymshark title-case style) */}
+            <div className="flex items-center gap-2 lg:gap-8">
               {/* Mobile Hamburger Menu Toggle */}
               <button
                 type="button"
@@ -95,9 +108,9 @@ export function StorefrontHeader({
                 <Menu className="h-6 w-6" />
               </button>
 
-              {/* Desktop Category Navigation */}
+              {/* Desktop Category Navigation Tabs */}
               <nav
-                className="hidden lg:flex items-center space-x-1"
+                className="hidden lg:flex items-center space-x-6"
                 aria-label="Storefront primary navigation"
               >
                 {navItems.map((item) => {
@@ -107,31 +120,31 @@ export function StorefrontHeader({
                       key={item.id}
                       onMouseEnter={() => handleMouseEnterNav(item.id)}
                       onMouseLeave={handleMouseLeaveNav}
-                      className="relative"
+                      className="relative py-5"
                     >
                       <Link
                         href={item.href}
-                        className={`relative px-3.5 py-2 text-sm font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1 ${
+                        className={`text-sm font-bold tracking-wide transition-colors inline-flex items-center gap-1 ${
                           isActive
                             ? 'text-[#163A2B]'
                             : 'text-[#252A25] hover:text-[#163A2B]'
                         }`}
                       >
                         {item.label}
-                        {/* Underline Indicator */}
-                        <span
-                          className={`absolute bottom-0 left-3.5 right-3.5 h-0.5 bg-[#163A2B] transition-transform duration-200 ${
-                            isActive ? 'scale-x-100' : 'scale-x-0'
-                          }`}
-                        />
                       </Link>
+                      {/* Clean Active Underline Indicator */}
+                      <span
+                        className={`absolute bottom-0 left-0 right-0 h-0.5 bg-[#163A2B] transition-transform duration-200 ${
+                          isActive ? 'scale-x-100' : 'scale-x-0'
+                        }`}
+                      />
                     </div>
                   );
                 })}
               </nav>
             </div>
 
-            {/* ZONE 2 (Center): Brand Logo */}
+            {/* ZONE 2 (Center): Brand Logo (Bold Gymshark-style center brand) */}
             <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center">
               <Link
                 href="/"
@@ -139,23 +152,18 @@ export function StorefrontHeader({
                 className="flex items-center gap-2 group"
                 aria-label="Open-Mart Home"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#163A2B] text-white font-extrabold text-sm shadow-xs group-hover:bg-[#214D3A] transition-colors">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#163A2B] text-white font-extrabold text-xs shadow-xs group-hover:bg-[#214D3A] transition-colors">
                   OM
                 </div>
-                <div className="text-center sm:text-left">
-                  <span className="block text-xl font-black tracking-tight text-[#163A2B] uppercase">
-                    OPEN-MART
-                  </span>
-                  <span className="hidden sm:block text-[9px] font-bold uppercase tracking-widest text-[#6B756D] -mt-1">
-                    Storefront
-                  </span>
-                </div>
+                <span className="text-xl font-black tracking-tight text-[#163A2B] uppercase">
+                  OPEN-MART
+                </span>
               </Link>
             </div>
 
             {/* ZONE 3 (Right): Search, Wishlist, Account, Shopping Bag */}
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Search Bar Input (Gymshark style) */}
+              {/* Rounded Capsule Search Bar */}
               <div className="hidden md:block w-56 lg:w-72">
                 <Input
                   placeholder="What are you looking for?"
@@ -206,18 +214,19 @@ export function StorefrontHeader({
               </button>
             </div>
           </div>
-        </div>
 
-        {/* 3. Mega Menu Component (Split Column 1 + Column 2 + Promos + Backdrop) */}
-        {activeNavItem && (
-          <StorefrontMegaMenu
-            navItem={activeNavItem}
-            isOpen={Boolean(activeNavId)}
-            onClose={handleCloseMegaMenu}
-            onMouseEnter={clearCloseTimeout}
-            onMouseLeave={handleMouseLeaveNav}
-          />
-        )}
+          {/* 3. Mega Menu Split Flyout (Anchored under nav items) */}
+          {activeNavItem && (
+            <StorefrontMegaMenu
+              navItem={activeNavItem}
+              isOpen={Boolean(activeNavId)}
+              headerHeight={headerHeight}
+              onClose={handleCloseMegaMenu}
+              onMouseEnter={clearCloseTimeout}
+              onMouseLeave={handleMouseLeaveNav}
+            />
+          )}
+        </div>
       </header>
 
       {/* 4. Responsive Mobile Slide-Over Navigation */}
