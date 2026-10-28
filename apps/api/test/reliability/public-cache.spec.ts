@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ExecutionContext, CallHandler } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { of, throwError } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
 import {
   buildCacheControlHeader,
   NO_CACHE_KEY,
@@ -100,7 +100,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
     it('enforces secure-by-default (Cache-Control: no-store, private) on all mutating methods (POST, PUT, PATCH, DELETE)', async () => {
       const reflector = new Reflector();
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        (key: any) => {
           if (key === PUBLIC_CACHE_KEY) {
             return { sMaxAge: 60, staleWhileRevalidate: 120 };
           }
@@ -116,12 +116,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
           handle: () => of({ success: true }),
         };
 
-        await new Promise((resolve) => {
-          interceptor.intercept(mockContext, next).subscribe({
-            next: () => {},
-            complete: resolve,
-          });
-        });
+        await firstValueFrom(interceptor.intercept(mockContext, next));
 
         expect(mockRes.setHeader).toHaveBeenCalledWith(
           'Cache-Control',
@@ -141,12 +136,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
         handle: () => of({ data: 'private-cart-data' }),
       };
 
-      await new Promise((resolve) => {
-        interceptor.intercept(mockContext, next).subscribe({
-          next: () => {},
-          complete: resolve,
-        });
-      });
+      await firstValueFrom(interceptor.intercept(mockContext, next));
 
       expect(headersMap.get('cache-control')).toBe(DEFAULT_NO_CACHE_HEADER);
     });
@@ -154,7 +144,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
     it('sets public Edge/CDN Cache-Control and Vary on successful 200 GET with @PublicCache', async () => {
       const reflector = new Reflector();
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        (key: any) => {
           if (key === PUBLIC_CACHE_KEY) {
             return { sMaxAge: 60, staleWhileRevalidate: 120 };
           }
@@ -168,12 +158,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
         handle: () => of({ products: [] }),
       };
 
-      await new Promise((resolve) => {
-        interceptor.intercept(mockContext, next).subscribe({
-          next: () => {},
-          complete: resolve,
-        });
-      });
+      await firstValueFrom(interceptor.intercept(mockContext, next));
 
       expect(headersMap.get('cache-control')).toBe(
         'public, s-maxage=60, stale-while-revalidate=120',
@@ -184,7 +169,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
     it('appends Accept-Encoding to existing Vary headers', async () => {
       const reflector = new Reflector();
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        (key: any) => {
           if (key === PUBLIC_CACHE_KEY) {
             return { sMaxAge: 300, staleWhileRevalidate: 600 };
           }
@@ -193,23 +178,14 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
       );
 
       const interceptor = new HttpCacheInterceptor(reflector);
-      const { mockContext, headersMap } = createMockContext(
-        'GET',
-        {},
-        {
-          vary: 'Origin',
-        },
-      );
+      const { mockContext, headersMap } = createMockContext('GET', {}, {
+        vary: 'Origin',
+      });
       const next: CallHandler = {
         handle: () => of({ categories: [] }),
       };
 
-      await new Promise((resolve) => {
-        interceptor.intercept(mockContext, next).subscribe({
-          next: () => {},
-          complete: resolve,
-        });
-      });
+      await firstValueFrom(interceptor.intercept(mockContext, next));
 
       expect(headersMap.get('cache-control')).toBe(
         'public, s-maxage=300, stale-while-revalidate=600',
@@ -220,7 +196,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
     it('bypasses public cache when query specifies non-active status (e.g. status=draft or status=all)', async () => {
       const reflector = new Reflector();
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        (key: any) => {
           if (key === PUBLIC_CACHE_KEY) {
             return { sMaxAge: 60, staleWhileRevalidate: 120 };
           }
@@ -238,12 +214,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
           handle: () => of({ products: [] }),
         };
 
-        await new Promise((resolve) => {
-          interceptor.intercept(mockContext, next).subscribe({
-            next: () => {},
-            complete: resolve,
-          });
-        });
+        await firstValueFrom(interceptor.intercept(mockContext, next));
 
         expect(headersMap.get('cache-control')).toBe(DEFAULT_NO_CACHE_HEADER);
       }
@@ -252,7 +223,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
     it('bypasses public cache when query requests inactive items (includeInactive=true)', async () => {
       const reflector = new Reflector();
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        (key: any) => {
           if (key === PUBLIC_CACHE_KEY) {
             return { sMaxAge: 300, staleWhileRevalidate: 600 };
           }
@@ -268,12 +239,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
         handle: () => of({ tree: [] }),
       };
 
-      await new Promise((resolve) => {
-        interceptor.intercept(mockContext, next).subscribe({
-          next: () => {},
-          complete: resolve,
-        });
-      });
+      await firstValueFrom(interceptor.intercept(mockContext, next));
 
       expect(headersMap.get('cache-control')).toBe(DEFAULT_NO_CACHE_HEADER);
     });
@@ -281,7 +247,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
     it('honors explicit @NoCache() even if @PublicCache is present on class or handler', async () => {
       const reflector = new Reflector();
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        (key: any) => {
           if (key === NO_CACHE_KEY) return true;
           if (key === PUBLIC_CACHE_KEY) {
             return { sMaxAge: 60, staleWhileRevalidate: 120 };
@@ -296,12 +262,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
         handle: () => of({ sensitive: 'internal' }),
       };
 
-      await new Promise((resolve) => {
-        interceptor.intercept(mockContext, next).subscribe({
-          next: () => {},
-          complete: resolve,
-        });
-      });
+      await firstValueFrom(interceptor.intercept(mockContext, next));
 
       expect(headersMap.get('cache-control')).toBe(DEFAULT_NO_CACHE_HEADER);
     });
@@ -309,7 +270,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
     it('does NOT apply public caching headers when downstream handler throws an error', async () => {
       const reflector = new Reflector();
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        (key: any) => {
           if (key === PUBLIC_CACHE_KEY) {
             return { sMaxAge: 60, staleWhileRevalidate: 120 };
           }
@@ -323,11 +284,9 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
         handle: () => throwError(() => new Error('Internal error')),
       };
 
-      await new Promise<void>((resolve) => {
-        interceptor.intercept(mockContext, next).subscribe({
-          error: () => resolve(),
-        });
-      });
+      await expect(
+        firstValueFrom(interceptor.intercept(mockContext, next)),
+      ).rejects.toThrow('Internal error');
 
       expect(headersMap.get('cache-control')).toBe(DEFAULT_NO_CACHE_HEADER);
     });
@@ -335,7 +294,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
     it('does NOT apply public caching headers when status code indicates error (4xx/5xx)', async () => {
       const reflector = new Reflector();
       vi.spyOn(reflector, 'getAllAndOverride').mockImplementation(
-        (key: string) => {
+        (key: any) => {
           if (key === PUBLIC_CACHE_KEY) {
             return { sMaxAge: 60, staleWhileRevalidate: 120 };
           }
@@ -351,12 +310,7 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
         handle: () => of({ message: 'Product not found' }),
       };
 
-      await new Promise((resolve) => {
-        interceptor.intercept(mockContext, next).subscribe({
-          next: () => {},
-          complete: resolve,
-        });
-      });
+      await firstValueFrom(interceptor.intercept(mockContext, next));
 
       expect(headersMap.get('cache-control')).toBe(DEFAULT_NO_CACHE_HEADER);
     });

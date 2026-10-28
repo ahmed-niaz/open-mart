@@ -23,6 +23,9 @@ import { IdempotencyModule } from './shared/infrastructure/idempotency/idempoten
 import { MediaModule } from './media/media.module.js';
 import { HealthModule } from './shared/infrastructure/health/health.module.js';
 import { HttpCacheInterceptor } from './shared/infrastructure/http/public-cache.interceptor.js';
+import { RedisModule } from './shared/infrastructure/redis/redis.module.js';
+import { CacheModule } from './shared/infrastructure/cache/cache.module.js';
+import { RedisThrottlerStorage } from './shared/infrastructure/redis/redis-throttler.storage.js';
 
 @Module({
   imports: [
@@ -34,12 +37,22 @@ import { HttpCacheInterceptor } from './shared/infrastructure/http/public-cache.
       envFilePath: ['.env.local', '.env'],
     }),
 
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 100,
-      },
-    ]),
+    RedisModule,
+    CacheModule,
+
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule],
+      inject: [RedisThrottlerStorage],
+      useFactory: (storage: RedisThrottlerStorage) => ({
+        throttlers: [
+          {
+            ttl: 60000,
+            limit: 100,
+          },
+        ],
+        storage,
+      }),
+    }),
 
     DrizzleModule,
     StorageModule,
