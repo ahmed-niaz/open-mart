@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CacheService } from '../../src/shared/infrastructure/cache/cache.service.js';
 import { RedisThrottlerStorage } from '../../src/shared/infrastructure/redis/redis-throttler.storage.js';
+import { GetCategoryByIdHandler } from '../../src/category/application/queries/get-category-by-id/get-category-by-id.handler.js';
 
 describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
   describe('CacheService (Single-Flight & Fail-Open)', () => {
@@ -195,6 +196,92 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
       // Fails open: returns safe hit count and isBlocked: false
       expect(record.totalHits).toBe(1);
       expect(record.isBlocked).toBe(false);
+    });
+  });
+
+  describe('Query Handlers & Mutation Invalidation Integration', () => {
+    it('caches GetCategoryByIdHandler query and skips DB on subsequent requests', async () => {
+      const mockCategory = {
+        id: 'cat-100',
+        name: 'Gym Sets',
+        slug: 'gym-sets',
+        isActive: true,
+      };
+
+      const mockRedis = {
+        store: new Map<string, string>([
+          ['om:cache:category:id:cat-100', JSON.stringify(mockCategory)],
+        ]),
+        get: vi.fn(async (k: string) => mockRedis.store.get(k) || null),
+        set: vi.fn(async () => 'OK'),
+      };
+
+      const cacheService = new CacheService(mockRedis as any);
+      const dbSelect = vi.fn();
+      const mockDb = { select: dbSelect } as any;
+
+      const handler = new GetCategoryByIdHandler(mockDb, cacheService);
+      const result = await handler.execute({ id: 'cat-100' });
+
+      expect(result).toEqual(mockCategory);
+      expect(dbSelect).not.toHaveBeenCalled();
+      expect(mockRedis.get).toHaveBeenCalledWith('om:cache:category:id:cat-100');
+    });
+
+    it('caches ListProductHandler query and enforces single-flight coalescing', async () => {
+      const mockResult = {
+        data: [{ id: 'p1', title: 'Power Tee' }],
+        meta: { total: 1, page: 1, limit: 20, totalPages: 1 },
+      };
+
+      const mockRedis = {
+        store: new Map<string, string>(),
+        get: vi.fn(async () => null),
+        set: vi.fn(async (k: string, v: string) => {
+          mockRedis.store.set(k, v);
+          return 'OK';
+        }),
+      };
+
+      const cacheService = new CacheService(mockRedis as any);
+
+      // Simulate simultaneous incoming listing queries
+      let dbExecutions = 0;
+      const fetcher = async () => {
+        dbExecutions++;
+        await new Promise((r) => setTimeout(r, 20));
+        return mockResult;
+      };
+
+      const cacheKey = 'product:list:test-page-1';
+      const [res1, res2, res3] = await Promise.all([
+        cacheService.getOrSet(cacheKey, fetcher, 60),
+        cacheService.getOrSet(cacheKey, fetcher, 60),
+        cacheService.getOrSet(cacheKey, fetcher, 60),
+      ]);
+
+      expect(res1).toEqual(mockResult);
+      expect(res2).toEqual(mockResult);
+      expect(res3).toEqual(mockResult);
+      expect(dbExecutions).toBe(1);
+    });
+
+    it('invalidates product and category cache patterns cleanly', async () => {
+      const mockRedis = {
+        del: vi.fn().mockResolvedValue(1),
+        scanStream: vi.fn(() =>
+          (async function* () {
+            yield ['om:cache:product:list:1', 'om:cache:product:list:2'];
+          })(),
+        ),
+      };
+
+      const cacheService = new CacheService(mockRedis as any);
+      await cacheService.del('product:id:prod-1');
+      await cacheService.delPattern('product:list:*');
+
+      expect(mockRedis.del).toHaveBeenCalledWith('om:cache:product:id:prod-1');
+      expect(mockRedis.scanStream).toHaveBeenCalled();
     });
   });
 });

@@ -10,40 +10,52 @@ import {
 import { DRIZZLE } from '../../../../shared/infrastructure/database/postgres/drizzle.provider.js';
 import type { DrizzleDB } from '../../../../shared/infrastructure/database/postgres/drizzle.provider.js';
 import { categoriesSchema } from '../../../../shared/infrastructure/database/postgres/schema/category.schema.js';
+import { CacheService } from '../../../../shared/infrastructure/cache/cache.service.js';
 
 @QueryHandler(GetCategoryBySlugQuery)
 export class GetCategoryBySlugHandler implements IQueryHandler<
   GetCategoryBySlugQuery,
   CategoryResponseDto
 > {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async execute(query: GetCategoryBySlugQuery): Promise<CategoryResponseDto> {
-    const rows = await this.db
-      .select()
-      .from(categoriesSchema)
-      .where(eq(categoriesSchema.slug, query.slug.trim().toLowerCase()))
-      .limit(1);
+    const normalizedSlug = query.slug.trim().toLowerCase();
 
-    if (!rows[0]) {
-      throw new ApplicationException(
-        `Category with slug '${query.slug}' not found.`,
-        ApplicationExceptionCode.NOT_FOUND,
-      );
-    }
+    return this.cacheService.getOrSet(
+      `category:slug:${normalizedSlug}`,
+      async () => {
+        const rows = await this.db
+          .select()
+          .from(categoriesSchema)
+          .where(eq(categoriesSchema.slug, normalizedSlug))
+          .limit(1);
 
-    const row = rows[0];
-    return {
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      description: row.description,
-      parentId: row.parentId,
-      imageUrl: row.imageUrl ?? undefined,
-      isActive: row.isActive,
-      displayOrder: row.displayOrder,
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-    };
+        if (!rows[0]) {
+          throw new ApplicationException(
+            `Category with slug '${query.slug}' not found.`,
+            ApplicationExceptionCode.NOT_FOUND,
+          );
+        }
+
+        const row = rows[0];
+        return {
+          id: row.id,
+          name: row.name,
+          slug: row.slug,
+          description: row.description,
+          parentId: row.parentId,
+          imageUrl: row.imageUrl ?? undefined,
+          isActive: row.isActive,
+          displayOrder: row.displayOrder,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+        };
+      },
+      300, // 5-minute TTL with single-flight stampede protection
+    );
   }
 }

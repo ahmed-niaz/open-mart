@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { and, eq, ne } from 'drizzle-orm';
 import { CategoryRepositoryPort } from '../../application/ports/category.repository.js';
 import { Category } from '../../domain/entities/category.entity.js';
@@ -15,10 +15,14 @@ import {
   CategoryInsertRow,
   CategorySelectRow,
 } from '../../../shared/infrastructure/database/postgres/schema/category.schema.js';
+import { CacheService } from '../../../shared/infrastructure/cache/cache.service.js';
 
 @Injectable()
 export class DrizzleCategoryRepository implements CategoryRepositoryPort {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    @Optional() private readonly cacheService?: CacheService,
+  ) {}
 
   async save(category: Category): Promise<void> {
     const row = DrizzleCategoryRepository.toPersistence(category);
@@ -31,6 +35,7 @@ export class DrizzleCategoryRepository implements CategoryRepositoryPort {
 
     if (existingRows.length === 0) {
       await this.db.insert(categoriesSchema).values(row);
+      await this.invalidateCategoryCache(category);
       return;
     }
 
@@ -66,6 +71,21 @@ export class DrizzleCategoryRepository implements CategoryRepositoryPort {
     }
 
     category.incrementVersion();
+    await this.invalidateCategoryCache(category);
+  }
+
+  private async invalidateCategoryCache(category?: Category): Promise<void> {
+    if (!this.cacheService) return;
+    try {
+      if (category) {
+        await this.cacheService.del(`category:id:${category.id.getValue()}`);
+        await this.cacheService.del(`category:slug:${category.slug.getValue()}`);
+      }
+      await this.cacheService.delPattern('category:*');
+      await this.cacheService.delPattern('product:list:*');
+    } catch {
+      // Fail-open: cache eviction errors must not fail database transaction
+    }
   }
 
   async findById(id: CategoryId): Promise<Category | null> {
@@ -131,6 +151,7 @@ export class DrizzleCategoryRepository implements CategoryRepositoryPort {
     await this.db
       .delete(categoriesSchema)
       .where(eq(categoriesSchema.id, id.getValue()));
+    await this.invalidateCategoryCache();
   }
 
   // --- Mappers ---

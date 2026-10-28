@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { and, eq, gte, lte, SQL } from 'drizzle-orm';
 import {
   ProductFilters,
@@ -26,10 +26,14 @@ import {
   productsSchema,
   ProductVariantPersistence,
 } from '../../../shared/infrastructure/database/postgres/schema/product.schema.js';
+import { CacheService } from '../../../shared/infrastructure/cache/cache.service.js';
 
 @Injectable()
 export class DrizzleProductRepository implements ProductRepositoryPort {
-  constructor(@Inject(DRIZZLE) private readonly db: DrizzleDB) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: DrizzleDB,
+    @Optional() private readonly cacheService?: CacheService,
+  ) {}
 
   // 1. SAVE PRODUCT (Supports Insert and Optimistic Concurrency Control Update)
   async save(product: Product): Promise<void> {
@@ -44,6 +48,7 @@ export class DrizzleProductRepository implements ProductRepositoryPort {
     if (existingRows.length === 0) {
       // Insert new product
       await this.db.insert(productsSchema).values(row);
+      await this.invalidateProductCache(product);
       return;
     }
 
@@ -90,6 +95,23 @@ export class DrizzleProductRepository implements ProductRepositoryPort {
     }
 
     product.incrementVersion();
+    await this.invalidateProductCache(product);
+  }
+
+  private async invalidateProductCache(product: Product): Promise<void> {
+    if (!this.cacheService) return;
+    try {
+      await this.cacheService.del(`product:id:${product.id.getValue()}`);
+      await this.cacheService.del(`product:sku:${product.sku.getValue()}`);
+      for (const variant of product.variants) {
+        if (variant.sku) {
+          await this.cacheService.del(`product:sku:${variant.sku.getValue()}`);
+        }
+      }
+      await this.cacheService.delPattern('product:list:*');
+    } catch {
+      // Fail-open: cache eviction errors must not fail database transaction
+    }
   }
 
   // 2. FIND BY ID
