@@ -27,3 +27,4 @@ export class LogoutAdminCommandHandler implements ICommandHandler<LogoutAdminCom
     this.logger.log('Admin session revoked on logout.');
   }
 }
+
