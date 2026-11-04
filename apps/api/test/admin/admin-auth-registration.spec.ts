@@ -14,6 +14,7 @@ import { ApplicationException } from '../../src/shared/domain/exceptions/applica
 
 describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => {
   let mockAdminRepo: any;
+  let mockSessionRepo: any;
   let mockPasswordHasher: any;
   let mockTokenService: any;
   let mockAuditPort: any;
@@ -27,6 +28,18 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
       findByEmail: vi.fn(),
       countActiveSuperAdmins: vi.fn().mockResolvedValue(1),
       updateLastLogin: vi.fn().mockResolvedValue(undefined),
+    };
+
+    mockSessionRepo = {
+      create: vi.fn().mockImplementation(async (dto: any) => ({
+        id: 's0000000-0000-4000-a000-000000000001',
+        ...dto,
+        revokedAt: null,
+        createdAt: new Date(),
+      })),
+      findByTokenHash: vi.fn(),
+      revokeByTokenHash: vi.fn().mockResolvedValue(undefined),
+      revokeAllByAdminId: vi.fn().mockResolvedValue(undefined),
     };
 
     mockPasswordHasher = {
@@ -43,6 +56,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
         accessToken: 'mock_access_jwt',
         refreshToken: 'mock_refresh_jwt',
       }),
+      getRefreshTokenMaxAgeMs: vi.fn().mockReturnValue(86400000),
     };
 
     mockAuditPort = {
@@ -86,6 +100,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
 
       const handler = new RegisterAdminCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockPasswordHasher,
         mockTokenService,
         mockAuditPort,
@@ -106,6 +121,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
       expect(savedAdmin.role.value).toBe('super-admin');
       expect(result.admin.role).toBe('super-admin');
       expect(result.accessToken).toBe('mock_access_jwt');
+      expect(mockSessionRepo.create).toHaveBeenCalledTimes(1);
     });
 
     it('should allow subsequent admin registration when valid registration secret is provided', async () => {
@@ -114,6 +130,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
 
       const handler = new RegisterAdminCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockPasswordHasher,
         mockTokenService,
         mockAuditPort,
@@ -135,6 +152,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
       const savedAdmin: AdminUser = mockAdminRepo.save.mock.calls[0][0];
       expect(savedAdmin.role.value).toBe('admin');
       expect(result.admin.role).toBe('admin');
+      expect(mockSessionRepo.create).toHaveBeenCalledTimes(1);
     });
 
     it('should reject registration if admins already exist and secret is invalid', async () => {
@@ -143,6 +161,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
 
       const handler = new RegisterAdminCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockPasswordHasher,
         mockTokenService,
         mockAuditPort,
@@ -150,17 +169,44 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
       );
 
       const command = new RegisterAdminCommand(
-        'hacker@evil.com',
+        'staff@openmart.com',
         'Password123!@#',
-        'Evil',
-        'User',
-        undefined,
+        'Staff',
+        'Member',
+        '+8801700000000',
         'wrong-secret',
       );
 
       await expect(handler.execute(command)).rejects.toThrow(
         ApplicationException,
       );
+      expect(mockAdminRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should reject registration if admins already exist and secret is missing', async () => {
+      mockAdminRepo.countActiveSuperAdmins.mockResolvedValueOnce(1);
+      mockAdminRepo.findByEmail.mockResolvedValueOnce(null);
+
+      const handler = new RegisterAdminCommandHandler(
+        mockAdminRepo,
+        mockSessionRepo,
+        mockPasswordHasher,
+        mockTokenService,
+        mockAuditPort,
+        mockConfigService,
+      );
+
+      const command = new RegisterAdminCommand(
+        'staff@openmart.com',
+        'Password123!@#',
+        'Staff',
+        'Member',
+      );
+
+      await expect(handler.execute(command)).rejects.toThrow(
+        ApplicationException,
+      );
+      expect(mockAdminRepo.save).not.toHaveBeenCalled();
     });
 
     it('should reject registration if email is already taken', async () => {
@@ -190,6 +236,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
 
       const handler = new RegisterAdminCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockPasswordHasher,
         mockTokenService,
         mockAuditPort,
@@ -237,6 +284,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
 
       const handler = new LoginAdminGoogleCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockGoogleAuth,
         mockTokenService,
         mockPasswordHasher,
@@ -250,6 +298,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
       expect(result.admin.email).toBe('admin@openmart.com');
       expect(result.accessToken).toBe('mock_access_jwt');
       expect(mockAdminRepo.updateLastLogin).toHaveBeenCalledTimes(1);
+      expect(mockSessionRepo.create).toHaveBeenCalledTimes(1);
     });
 
     it('should auto-provision as super-admin on Google OAuth if table is empty', async () => {
@@ -258,6 +307,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
 
       const handler = new LoginAdminGoogleCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockGoogleAuth,
         mockTokenService,
         mockPasswordHasher,
@@ -272,6 +322,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
       const saved = mockAdminRepo.save.mock.calls[0][0];
       expect(saved.role.value).toBe('super-admin');
       expect(result.admin.role).toBe('super-admin');
+      expect(mockSessionRepo.create).toHaveBeenCalledTimes(1);
     });
 
     it('should reject Google login if account not found and system already has admins', async () => {
@@ -280,6 +331,7 @@ describe('Admin Registration & Google OAuth Command Handlers Unit Tests', () => 
 
       const handler = new LoginAdminGoogleCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockGoogleAuth,
         mockTokenService,
         mockPasswordHasher,

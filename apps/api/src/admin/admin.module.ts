@@ -5,9 +5,11 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '../shared/infrastructure/auth/auth.module.js';
 
 import { ADMIN_USER_REPOSITORY } from './application/ports/admin-user.repository.js';
+import { ADMIN_SESSION_REPOSITORY } from './application/ports/admin-session.repository.js';
 import { ADMIN_AUDIT_PORT } from './application/ports/admin-audit.port.js';
 import { ADMIN_GOOGLE_AUTH_PORT } from './application/ports/admin-google-auth.port.js';
 import { DrizzleAdminUserRepository } from './infrastructure/adapters/drizzle-admin-user.repository.js';
+import { DrizzleAdminSessionRepository } from './infrastructure/adapters/drizzle-admin-session.repository.js';
 import { DrizzleAdminAuditAdapter } from './infrastructure/adapters/drizzle-admin-audit.adapter.js';
 import { AdminGoogleAuthAdapter } from './infrastructure/adapters/drizzle-admin-google-auth.adapter.js';
 import { InitialAdminSeeder } from './infrastructure/seeders/initial-admin.seeder.js';
@@ -17,6 +19,7 @@ import { LoginAdminCommandHandler } from './application/commands/login-admin/log
 import { RegisterAdminCommandHandler } from './application/commands/register-admin/register-admin.handler.js';
 import { LoginAdminGoogleCommandHandler } from './application/commands/login-admin-google/login-admin-google.handler.js';
 import { RefreshAdminTokenCommandHandler } from './application/commands/refresh-admin-token/refresh-admin-token.handler.js';
+import { LogoutAdminCommandHandler } from './application/commands/logout-admin/logout-admin.handler.js';
 import { CreateAdminUserCommandHandler } from './application/commands/create-admin-user/create-admin-user.handler.js';
 import { UpdateAdminUserCommandHandler } from './application/commands/update-admin-user/update-admin-user.handler.js';
 import { ChangeAdminRoleCommandHandler } from './application/commands/change-admin-role/change-admin-role.handler.js';
@@ -44,6 +47,7 @@ const CommandHandlers = [
   RegisterAdminCommandHandler,
   LoginAdminGoogleCommandHandler,
   RefreshAdminTokenCommandHandler,
+  LogoutAdminCommandHandler,
   CreateAdminUserCommandHandler,
   UpdateAdminUserCommandHandler,
   ChangeAdminRoleCommandHandler,
@@ -74,6 +78,10 @@ const QueryHandlers = [
       useClass: DrizzleAdminUserRepository,
     },
     {
+      provide: ADMIN_SESSION_REPOSITORY,
+      useClass: DrizzleAdminSessionRepository,
+    },
+    {
       provide: ADMIN_AUDIT_PORT,
       useClass: DrizzleAdminAuditAdapter,
     },
@@ -87,6 +95,7 @@ const QueryHandlers = [
   ],
   exports: [
     ADMIN_USER_REPOSITORY,
+    ADMIN_SESSION_REPOSITORY,
     ADMIN_AUDIT_PORT,
     ADMIN_GOOGLE_AUTH_PORT,
     AdminJwtGuard,

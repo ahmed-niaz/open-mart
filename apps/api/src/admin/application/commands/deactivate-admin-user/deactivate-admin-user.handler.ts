@@ -7,6 +7,10 @@ import {
   type AdminUserRepositoryPort,
 } from '../../ports/admin-user.repository.js';
 import {
+  ADMIN_SESSION_REPOSITORY,
+  type AdminSessionRepositoryPort,
+} from '../../ports/admin-session.repository.js';
+import {
   ADMIN_AUDIT_PORT,
   type AdminAuditPort,
 } from '../../ports/admin-audit.port.js';
@@ -26,6 +30,8 @@ export class DeactivateAdminUserCommandHandler implements ICommandHandler<
   constructor(
     @Inject(ADMIN_USER_REPOSITORY)
     private readonly adminRepo: AdminUserRepositoryPort,
+    @Inject(ADMIN_SESSION_REPOSITORY)
+    private readonly sessionRepo: AdminSessionRepositoryPort,
     @Inject(ADMIN_AUDIT_PORT)
     private readonly auditPort: AdminAuditPort,
   ) {}
@@ -71,6 +77,9 @@ export class DeactivateAdminUserCommandHandler implements ICommandHandler<
     targetAdmin.deactivate(operator, command.reason);
 
     await this.adminRepo.save(targetAdmin);
+
+    // Revoke all active sessions for the deactivated administrator immediately
+    await this.sessionRepo.revokeAllByAdminId(targetAdmin.id.value);
 
     await this.auditPort.recordLog({
       adminId: operator.id.value,

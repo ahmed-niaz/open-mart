@@ -10,3 +10,4 @@ export * from './outbox.schema.js';
 export * from './idempotency.schema.js';
 export * from './cart.schema.js';
 export * from './media.schema.js';
+export * from './admin-session.schema.js';

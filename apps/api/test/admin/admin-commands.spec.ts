@@ -22,6 +22,7 @@ import { ApplicationException } from '../../src/shared/domain/exceptions/applica
 
 describe('Admin Command Handlers Unit Tests', () => {
   let mockAdminRepo: any;
+  let mockSessionRepo: any;
   let mockPasswordHasher: any;
   let mockTokenService: any;
   let mockAuditPort: any;
@@ -33,6 +34,27 @@ describe('Admin Command Handlers Unit Tests', () => {
       findByEmail: vi.fn(),
       countActiveSuperAdmins: vi.fn().mockResolvedValue(2),
       updateLastLogin: vi.fn().mockResolvedValue(undefined),
+    };
+
+    mockSessionRepo = {
+      create: vi.fn().mockImplementation(async (dto: any) => ({
+        id: 's0000000-0000-4000-a000-000000000001',
+        ...dto,
+        revokedAt: null,
+        createdAt: new Date(),
+      })),
+      findByTokenHash: vi.fn().mockImplementation(async (hash: string) => ({
+        id: 's0000000-0000-4000-a000-000000000001',
+        adminId: 'a0000000-0000-4000-a000-000000000001',
+        tokenHash: hash,
+        deviceInfo: null,
+        ipAddress: null,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24),
+        revokedAt: null,
+        createdAt: new Date(),
+      })),
+      revokeByTokenHash: vi.fn().mockResolvedValue(undefined),
+      revokeAllByAdminId: vi.fn().mockResolvedValue(undefined),
     };
 
     mockPasswordHasher = {
@@ -49,6 +71,7 @@ describe('Admin Command Handlers Unit Tests', () => {
         accessToken: 'mock_access_jwt',
         refreshToken: 'mock_refresh_jwt',
       }),
+      getRefreshTokenMaxAgeMs: vi.fn().mockReturnValue(86400000),
       verifyRefreshToken: vi.fn().mockResolvedValue({
         sub: 'a0000000-0000-4000-a000-000000000001',
         email: 'admin@openmart.com',
@@ -66,6 +89,7 @@ describe('Admin Command Handlers Unit Tests', () => {
     it('successfully logs in, updates lastLogin unversioned, and returns tokens', async () => {
       const handler = new LoginAdminCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockPasswordHasher,
         mockTokenService,
         mockAuditPort,
@@ -101,6 +125,7 @@ describe('Admin Command Handlers Unit Tests', () => {
     it('throws UNAUTHORIZED on wrong password', async () => {
       const handler = new LoginAdminCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockPasswordHasher,
         mockTokenService,
         mockAuditPort,
@@ -125,6 +150,7 @@ describe('Admin Command Handlers Unit Tests', () => {
     it('rejects deactivated account immediately', async () => {
       const handler = new LoginAdminCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockPasswordHasher,
         mockTokenService,
         mockAuditPort,
@@ -159,6 +185,7 @@ describe('Admin Command Handlers Unit Tests', () => {
     it('successfully refreshes token pair for active admin', async () => {
       const handler = new RefreshAdminTokenCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockTokenService,
       );
 
@@ -181,6 +208,7 @@ describe('Admin Command Handlers Unit Tests', () => {
     it('rejects refresh when token scope is not admin', async () => {
       const handler = new RefreshAdminTokenCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockTokenService,
       );
 
@@ -309,6 +337,7 @@ describe('Admin Command Handlers Unit Tests', () => {
     it('prevents deactivating the last active super-admin', async () => {
       const handler = new DeactivateAdminUserCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockAuditPort,
       );
 
@@ -349,6 +378,7 @@ describe('Admin Command Handlers Unit Tests', () => {
     it('prevents self-deactivation', async () => {
       const handler = new DeactivateAdminUserCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockAuditPort,
       );
 
@@ -378,6 +408,7 @@ describe('Admin Command Handlers Unit Tests', () => {
     it('successfully changes password and clears mustChangePassword', async () => {
       const handler = new ChangeAdminPasswordCommandHandler(
         mockAdminRepo,
+        mockSessionRepo,
         mockPasswordHasher,
         mockAuditPort,
       );

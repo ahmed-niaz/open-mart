@@ -21,6 +21,7 @@ import { RegisterAdminCommand } from '../../application/commands/register-admin/
 import { LoginAdminGoogleCommand } from '../../application/commands/login-admin-google/login-admin-google.command.js';
 import { RefreshAdminTokenCommand } from '../../application/commands/refresh-admin-token/refresh-admin-token.command.js';
 import { ChangeAdminPasswordCommand } from '../../application/commands/change-admin-password/change-admin-password.command.js';
+import { LogoutAdminCommand } from '../../application/commands/logout-admin/logout-admin.command.js';
 import { GetAdminProfileQuery } from '../../application/queries/get-admin-profile/get-admin-profile.query.js';
 import { LoginAdminDto } from '../dto/login-admin.dto.js';
 import {
@@ -259,8 +260,15 @@ export class AdminAuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<{ message: string }> {
+    const rawRefreshToken =
+      AuthCookieHelper.extractCookie(req, 'refresh_token') ||
+      (req.headers['x-refresh-token'] as string | undefined) ||
+      null;
+
+    await this.commandBus.execute(new LogoutAdminCommand(rawRefreshToken));
     AuthCookieHelper.clearAuthCookies(res, ADMIN_AUTH_COOKIE_PATH);
     return { message: 'Logged out successfully' };
   }

@@ -7,6 +7,10 @@ import {
   type AdminUserRepositoryPort,
 } from '../../ports/admin-user.repository.js';
 import {
+  ADMIN_SESSION_REPOSITORY,
+  type AdminSessionRepositoryPort,
+} from '../../ports/admin-session.repository.js';
+import {
   PASSWORD_HASHER_PORT,
   type PasswordHasherPort,
 } from '../../../../shared/application/ports/password-hasher.port.js';
@@ -31,6 +35,8 @@ export class ChangeAdminPasswordCommandHandler implements ICommandHandler<
   constructor(
     @Inject(ADMIN_USER_REPOSITORY)
     private readonly adminRepo: AdminUserRepositoryPort,
+    @Inject(ADMIN_SESSION_REPOSITORY)
+    private readonly sessionRepo: AdminSessionRepositoryPort,
     @Inject(PASSWORD_HASHER_PORT)
     private readonly passwordHasher: PasswordHasherPort,
     @Inject(ADMIN_AUDIT_PORT)
@@ -81,6 +87,9 @@ export class ChangeAdminPasswordCommandHandler implements ICommandHandler<
     admin.changePassword(AdminPasswordHash.create(hashed));
 
     await this.adminRepo.save(admin);
+
+    // Force re-authentication on all devices after password change
+    await this.sessionRepo.revokeAllByAdminId(admin.id.value);
 
     await this.auditPort.recordLog({
       adminId: admin.id.value,

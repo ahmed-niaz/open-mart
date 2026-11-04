@@ -8,6 +8,10 @@ import {
   type AdminUserRepositoryPort,
 } from '../../ports/admin-user.repository.js';
 import {
+  ADMIN_SESSION_REPOSITORY,
+  type AdminSessionRepositoryPort,
+} from '../../ports/admin-session.repository.js';
+import {
   PASSWORD_HASHER_PORT,
   type PasswordHasherPort,
 } from '../../../../shared/application/ports/password-hasher.port.js';
@@ -19,6 +23,7 @@ import {
   ADMIN_AUDIT_PORT,
   type AdminAuditPort,
 } from '../../ports/admin-audit.port.js';
+import { hashToken } from '../../../../shared/infrastructure/auth/token-hash.util.js';
 import { AdminUser } from '../../../domain/entities/admin-user.entity.js';
 import { AdminEmail } from '../../../domain/value-objects/admin-email.vo.js';
 import { AdminRoleVO } from '../../../domain/value-objects/admin-role.vo.js';
@@ -39,6 +44,8 @@ export class RegisterAdminCommandHandler implements ICommandHandler<
   constructor(
     @Inject(ADMIN_USER_REPOSITORY)
     private readonly adminRepo: AdminUserRepositoryPort,
+    @Inject(ADMIN_SESSION_REPOSITORY)
+    private readonly sessionRepo: AdminSessionRepositoryPort,
     @Inject(PASSWORD_HASHER_PORT)
     private readonly passwordHasher: PasswordHasherPort,
     @Inject(TOKEN_SERVICE_PORT)
@@ -122,6 +129,17 @@ export class RegisterAdminCommandHandler implements ICommandHandler<
       email: admin.email.value,
       scope: 'admin',
       role: admin.role.value,
+    });
+
+    // Persist DB session for revocation capability
+    const tokenHash = hashToken(tokenPair.refreshToken);
+    const expiresAt = new Date(Date.now() + this.tokenService.getRefreshTokenMaxAgeMs());
+    await this.sessionRepo.create({
+      adminId: admin.id.value,
+      tokenHash,
+      deviceInfo: command.userAgent ?? null,
+      ipAddress: command.ipAddress ?? null,
+      expiresAt,
     });
 
     return {
