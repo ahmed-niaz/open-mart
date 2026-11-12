@@ -20,7 +20,7 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
   return (
     <div
       className={cn(
-        'inline-flex flex-wrap items-center gap-1 rounded-full border border-[#E5E0D5] bg-[#F4F2EE]/60 p-1 text-xs font-semibold text-[#6B756D]',
+        'inline-flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto rounded-full border border-[#E5E0D5] bg-[#F4F2EE]/60 p-1 text-xs font-semibold text-[#6B756D] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
         className,
       )}
     >
@@ -29,9 +29,10 @@ export function Tabs({ tabs, activeTab, onChange, className }: TabsProps) {
         return (
           <button
             key={tab.id}
+            type="button"
             onClick={() => onChange(tab.id)}
             className={cn(
-              'flex items-center gap-2 rounded-full px-3.5 py-1.5 transition-all cursor-pointer select-none',
+              'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full px-3.5 py-1.5 transition-all cursor-pointer select-none',
               isActive
                 ? 'bg-[#163A2B] text-white shadow-xs font-bold'
                 : 'hover:text-[#163A2B] hover:bg-white/80',

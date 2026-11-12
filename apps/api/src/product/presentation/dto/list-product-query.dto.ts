@@ -14,6 +14,10 @@ export class ListProductQueryDto extends PaginationQueryDto {
   search?: string;
 
   @IsOptional()
+  @IsString()
+  q?: string;
+
+  @IsOptional()
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       return value.toLowerCase() === 'true' || value === '1';

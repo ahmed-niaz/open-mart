@@ -155,8 +155,8 @@ export default function AdminDashboardPage() {
         title="Operations & Performance Dashboard"
         subtitle="Live sales metrics, order fulfillment pipeline, and inventory status."
         actions={
-          <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-lg border border-[#E5E0D5] bg-white p-1 text-xs font-semibold text-[#6B756D]">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <div className="inline-flex max-w-full overflow-x-auto rounded-lg border border-[#E5E0D5] bg-white p-1 text-xs font-semibold text-[#6B756D] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {[
                 { label: 'Today', value: 'today' },
                 { label: '7 Days', value: '7d' },
@@ -166,7 +166,7 @@ export default function AdminDashboardPage() {
                 <button
                   key={item.value}
                   onClick={() => setPeriod(item.value)}
-                  className={`rounded-md px-3 py-1.5 transition-all cursor-pointer ${
+                  className={`shrink-0 whitespace-nowrap rounded-md px-3 py-1.5 transition-all cursor-pointer ${
                     period === item.value
                       ? 'bg-[#163A2B] text-white font-bold shadow-xs'
                       : 'hover:text-[#163A2B] hover:bg-[#FAF7F0]'
@@ -236,14 +236,14 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Sales Chart (2 cols) */}
         <Card className="lg:col-span-2 shadow-xs">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-col gap-2 pb-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Revenue & Sales Trajectory</CardTitle>
               <CardDescription>
                 Gross order revenue (BDT) across the selected timeframe
               </CardDescription>
             </div>
-            <span className="text-xs font-semibold text-[#2F855A] bg-[#2F855A]/10 px-2 py-1 rounded-md">
+            <span className="w-fit shrink-0 text-xs font-semibold text-[#2F855A] bg-[#2F855A]/10 px-2 py-1 rounded-md">
               BDT MRP VAT-Inclusive
             </span>
           </CardHeader>
@@ -446,22 +446,22 @@ export default function AdminDashboardPage() {
                 {topProducts.map((prod, idx) => (
                   <div
                     key={prod.productId || idx}
-                    className="flex items-center justify-between py-3"
+                    className="flex items-center justify-between gap-3 py-3"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#FAF7F0] border border-[#E5E0D5] font-bold text-xs text-[#163A2B]">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FAF7F0] border border-[#E5E0D5] font-bold text-xs text-[#163A2B]">
                         #{idx + 1}
                       </div>
-                      <div>
-                        <p className="font-semibold text-xs text-[#252A25] max-w-sm truncate">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-xs text-[#252A25] truncate">
                           {prod.productName}
                         </p>
-                        <p className="text-[10px] uppercase tracking-wider text-[#6B756D]">
+                        <p className="text-[10px] uppercase tracking-wider text-[#6B756D] truncate">
                           SKU: {prod.sku}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="shrink-0 text-right">
                       <p className="font-bold text-xs text-[#163A2B]">
                         {formatBDT(prod.totalRevenue)}
                       </p>
@@ -560,32 +560,32 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Row 4: Recent Orders Table */}
-      <Card className="shadow-xs">
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
+      <div className="space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle>Recent Orders & Fulfillment Queue</CardTitle>
-            <CardDescription>
+            <h2 className="text-[17px] font-semibold leading-tight tracking-tight text-[#252A25]">
+              Recent Orders & Fulfillment Queue
+            </h2>
+            <p className="text-sm text-[#6B756D]">
               Latest customer checkout transactions awaiting dispatch
-            </CardDescription>
+            </p>
           </div>
           <Link
             href="/admin/orders"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[#163A2B] hover:text-[#214D3A] transition-colors"
+            className="inline-flex w-fit shrink-0 items-center gap-1 text-xs font-semibold text-[#163A2B] hover:text-[#214D3A] transition-colors"
           >
             All Orders ({recentOrders.length})
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <DataTable
-            columns={recentOrderColumns}
-            data={recentOrders}
-            isLoading={isLoadingRecentOrders}
-            emptyMessage="No recent orders found."
-            onRowClick={(order) => setSelectedOrder(order)}
-          />
-        </CardContent>
-      </Card>
+        </div>
+        <DataTable
+          columns={recentOrderColumns}
+          data={recentOrders}
+          isLoading={isLoadingRecentOrders}
+          emptyMessage="No recent orders found."
+          onRowClick={(order) => setSelectedOrder(order)}
+        />
+      </div>
 
       {/* Quick Order Detail Drawer */}
       <SlideOver

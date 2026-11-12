@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/admin/layout/admin-page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs } from '@/components/ui/tabs';
@@ -294,19 +293,19 @@ export default function AdminInventoryPage() {
       </div>
 
       {/* Filters and Search Bar */}
-      <Card className="border border-[#E5E0D5]">
-        <CardContent className="p-4 space-y-4 sm:flex sm:items-center sm:justify-between sm:space-y-0 gap-4">
-          <div className="flex-1 max-w-md relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B756D]" />
-            <Input
-              type="text"
-              placeholder="Search by SKU or product title..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative w-full lg:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B756D]" />
+          <Input
+            type="text"
+            placeholder="Search by SKU or product title..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-9"
+          />
+        </div>
 
+        <div className="min-w-0">
           <Tabs
             tabs={INVENTORY_TABS}
             activeTab={activeTab}
@@ -315,30 +314,26 @@ export default function AdminInventoryPage() {
               setPage(1);
             }}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Inventory Table */}
-      <Card className="border border-[#E5E0D5] shadow-xs">
-        <CardContent className="pt-5">
-          <DataTable
-            columns={columns}
-            data={inventory}
-            isLoading={isLoading}
-            emptyMessage={
-              debouncedSearch
-                ? `No inventory items matching "${debouncedSearch}".`
-                : 'No inventory SKUs registered yet.'
-            }
-            pagination={{
-              page,
-              totalPages,
-              totalCount: total,
-              onPageChange: (newPage) => setPage(newPage),
-            }}
-          />
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={inventory}
+        isLoading={isLoading}
+        emptyMessage={
+          debouncedSearch
+            ? `No inventory items matching "${debouncedSearch}".`
+            : 'No inventory SKUs registered yet.'
+        }
+        pagination={{
+          page,
+          totalPages,
+          totalCount: total,
+          onPageChange: (newPage) => setPage(newPage),
+        }}
+      />
 
       {/* Restock Modal */}
       <Modal

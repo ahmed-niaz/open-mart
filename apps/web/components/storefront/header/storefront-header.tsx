@@ -6,13 +6,17 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ChevronDown,
+  Loader2,
   MapPin,
+  Package,
   Search,
   ShoppingCart,
   User,
   X,
 } from 'lucide-react';
 import { useStorefrontCategories } from '@/hooks/storefront/use-storefront-categories';
+import { useStorefrontProducts } from '@/hooks/storefront/use-storefront-products';
+import { formatBDT } from '@/lib/utils';
 import { SECONDARY_QUICK_LINKS } from './nav-data';
 import { StorefrontHamburgerDrawer } from './storefront-hamburger-drawer';
 
@@ -34,10 +38,45 @@ export function StorefrontHeader({
   const router = useRouter();
   const [searchScope, setSearchScope] = React.useState<string>('all');
   const [searchQuery, setSearchQuery] = React.useState<string>('');
+  const [debouncedQuery, setDebouncedQuery] = React.useState<string>('');
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = React.useState(false);
+  const searchBoxRef = React.useRef<HTMLDivElement>(null);
   const { departments, isLoading } = useStorefrontCategories();
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery.trim());
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  React.useEffect(() => {
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        searchBoxRef.current &&
+        !searchBoxRef.current.contains(event.target as Node)
+      ) {
+        setIsSuggestionsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  const { data: suggestionsData, isFetching: isSearchingSuggestions } =
+    useStorefrontProducts({
+      search: debouncedQuery,
+      category: searchScope,
+      page: 1,
+      limit: 6,
+      enabled: debouncedQuery.length >= 2,
+    });
+
+  const suggestions = suggestionsData?.data ?? [];
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSuggestionsOpen(false);
     const trimmed = searchQuery.trim();
     const params = new URLSearchParams();
     if (trimmed) {
@@ -108,66 +147,157 @@ export function StorefrontHeader({
             </span>
           </button>
 
-          {/* Scoped Search Bar */}
-          <form
-            onSubmit={handleSearchSubmit}
-            className="order-last mt-1 flex h-11 w-full items-stretch overflow-hidden rounded-md bg-white ring-1 ring-[#E5E0D5]/30 focus-within:ring-2 focus-within:ring-[#2F855A] md:order-none md:mt-0 md:flex-1"
-            role="search"
-            aria-label="Search store catalog"
+          {/* Scoped Search Bar + Live Trigram/Banglish Autocomplete */}
+          <div
+            ref={searchBoxRef}
+            className="order-last relative mt-1 w-full md:order-none md:mt-0 md:flex-1"
           >
-            {/* Department Scope Selector */}
-            <div className="relative hidden shrink-0 sm:flex">
-              <select
-                aria-label="Search department"
-                value={searchScope}
-                onChange={(e) => setSearchScope(e.target.value)}
-                className="h-full cursor-pointer appearance-none border-r border-[#E5E0D5] bg-[#F4F2EE] pr-8 pl-3.5 text-[13px] font-semibold text-[#252A25] transition-colors hover:bg-[#E8DFD0] focus:outline-none"
-              >
-                <option value="all">All</option>
-                {departments.map((category) => (
-                  <option key={category.id} value={category.slug}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-[#6B756D]" />
-            </div>
-
-            {/* Search Input */}
-            <div className="relative flex flex-1 items-center">
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={
-                  searchScope === 'all'
-                    ? 'Search OpenMart'
-                    : `Search ${selectedScopeLabel}...`
-                }
-                aria-label="Search products"
-                className="h-full w-full bg-white px-3.5 text-[15px] text-[#252A25] placeholder:text-[#6B756D] focus:outline-none"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  aria-label="Clear search query"
-                  className="mr-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-[#6B756D] hover:bg-[#F4F2EE] hover:text-[#252A25]"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            {/* Search Submit Button (#2F855A admin secondary accent) */}
-            <button
-              type="submit"
-              aria-label="Submit search"
-              className="flex w-12 shrink-0 cursor-pointer items-center justify-center bg-[#2F855A] text-white transition-colors hover:bg-[#214D3A]"
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex h-11 w-full items-stretch overflow-hidden rounded-md bg-white ring-1 ring-[#E5E0D5]/30 focus-within:ring-2 focus-within:ring-[#2F855A]"
+              role="search"
+              aria-label="Search store catalog"
             >
-              <Search className="h-5 w-5" />
-            </button>
-          </form>
+              {/* Department Scope Selector */}
+              <div className="relative hidden shrink-0 sm:flex">
+                <select
+                  aria-label="Search department"
+                  value={searchScope}
+                  onChange={(e) => setSearchScope(e.target.value)}
+                  className="h-full cursor-pointer appearance-none border-r border-[#E5E0D5] bg-[#F4F2EE] pr-8 pl-3.5 text-[13px] font-semibold text-[#252A25] transition-colors hover:bg-[#E8DFD0] focus:outline-none"
+                >
+                  <option value="all">All</option>
+                  {departments.map((category) => (
+                    <option key={category.id} value={category.slug}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute top-1/2 right-2.5 h-4 w-4 -translate-y-1/2 text-[#6B756D]" />
+              </div>
+
+              {/* Search Input */}
+              <div className="relative flex flex-1 items-center">
+                <input
+                  type="search"
+                  value={searchQuery}
+                  onFocus={() => setIsSuggestionsOpen(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setIsSuggestionsOpen(false);
+                    }
+                  }}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setIsSuggestionsOpen(true);
+                  }}
+                  placeholder={
+                    searchScope === 'all'
+                      ? 'Search OpenMart (English, Banglish or বাংলা)...'
+                      : `Search ${selectedScopeLabel}...`
+                  }
+                  aria-label="Search products"
+                  className="h-full w-full bg-white px-3.5 text-[15px] text-[#252A25] placeholder:text-[#6B756D] focus:outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setDebouncedQuery('');
+                      setIsSuggestionsOpen(false);
+                    }}
+                    aria-label="Clear search query"
+                    className="mr-2 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-[#6B756D] hover:bg-[#F4F2EE] hover:text-[#252A25]"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Search Submit Button (#2F855A admin secondary accent) */}
+              <button
+                type="submit"
+                aria-label="Submit search"
+                className="flex w-12 shrink-0 cursor-pointer items-center justify-center bg-[#2F855A] text-white transition-colors hover:bg-[#214D3A]"
+              >
+                <Search className="h-5 w-5" />
+              </button>
+            </form>
+
+            {isSuggestionsOpen && debouncedQuery.length >= 2 && (
+              <div className="absolute top-full right-0 left-0 z-50 mt-1.5 overflow-hidden rounded-xl border border-[#E5E0D5] bg-white text-[#252A25] shadow-xl">
+                {isSearchingSuggestions && suggestions.length === 0 ? (
+                  <div className="flex items-center gap-2 px-4 py-3 text-xs text-[#6B756D]">
+                    <Loader2 className="h-4 w-4 animate-spin text-[#163A2B]" />
+                    <span>Searching catalog...</span>
+                  </div>
+                ) : suggestions.length === 0 ? (
+                  <div className="px-4 py-3 text-xs text-[#6B756D]">
+                    No instant matches for &ldquo;{debouncedQuery}&rdquo;. Press
+                    Enter to view full search.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[#E5E0D5]/60">
+                    {suggestions.map((item) => {
+                      const thumb =
+                        item.media.find((m) => m.isThumbnail)?.url ??
+                        item.media[0]?.url;
+                      return (
+                        <Link
+                          key={item.id}
+                          href={`/products/${item.id}`}
+                          onClick={() => setIsSuggestionsOpen(false)}
+                          className="flex items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-[#FAF7F0]"
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#E5E0D5] bg-[#F4F2EE]">
+                              {thumb ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={thumb}
+                                  alt={item.title}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <Package className="h-4 w-4 text-[#6B756D]" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-[#252A25]">
+                                {item.title}
+                              </p>
+                              <p className="truncate text-xs text-[#6B756D]">
+                                {item.category?.name || item.sku}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="shrink-0 text-sm font-bold text-[#163A2B]">
+                            {formatBDT(item.unitPrice)}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                    <Link
+                      href={`/search?${new URLSearchParams({
+                        q: debouncedQuery,
+                        ...(searchScope !== 'all'
+                          ? { category: searchScope }
+                          : {}),
+                      }).toString()}`}
+                      onClick={() => setIsSuggestionsOpen(false)}
+                      className="flex items-center justify-between bg-[#FAF7F0] px-4 py-2.5 text-xs font-bold text-[#163A2B] hover:bg-[#E8DFD0]/50"
+                    >
+                      <span>
+                        See all results for &ldquo;{debouncedQuery}&rdquo;
+                      </span>
+                      <span>→</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Right Utility Actions */}
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 md:ml-0">

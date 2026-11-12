@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { AdminPageHeader } from '@/components/admin/layout/admin-page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -173,16 +172,12 @@ export default function AdminDiscountsPage() {
         }
       />
 
-      <Card className="shadow-xs">
-        <CardContent className="pt-5">
-          <DataTable
-            columns={columns}
-            data={discounts}
-            isLoading={isLoading}
-            emptyMessage="No discount campaigns created yet."
-          />
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={discounts}
+        isLoading={isLoading}
+        emptyMessage="No discount campaigns created yet."
+      />
 
       <Modal
         isOpen={isModalOpen}

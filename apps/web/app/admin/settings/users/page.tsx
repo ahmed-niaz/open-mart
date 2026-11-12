@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { AdminPageHeader } from '@/components/admin/layout/admin-page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -145,16 +144,12 @@ export default function AdminUsersPage() {
         }
       />
 
-      <Card className="shadow-xs">
-        <CardContent className="pt-5">
-          <DataTable
-            columns={columns}
-            data={users}
-            isLoading={isLoading}
-            emptyMessage="No staff users found."
-          />
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={users}
+        isLoading={isLoading}
+        emptyMessage="No staff users found."
+      />
 
       <Modal
         isOpen={isModalOpen}
@@ -189,7 +184,7 @@ export default function AdminUsersPage() {
           onSubmit={handleSubmit(onSubmit)}
           className="space-y-4 py-2"
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input
               label="First Name *"
               placeholder="e.g. Rahim"

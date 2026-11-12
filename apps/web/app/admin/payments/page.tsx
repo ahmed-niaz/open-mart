@@ -4,7 +4,6 @@ import * as React from 'react';
 import { CreditCard, RotateCcw } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/admin/layout/admin-page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/ui/badge';
@@ -136,16 +135,12 @@ export default function AdminPaymentsPage() {
         breadcrumbs={[{ label: 'Financials' }, { label: 'Payments' }]}
       />
 
-      <Card className="shadow-xs">
-        <CardContent className="pt-5">
-          <DataTable
-            columns={columns}
-            data={payments}
-            isLoading={isLoading}
-            emptyMessage="No payment transactions recorded yet."
-          />
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={payments}
+        isLoading={isLoading}
+        emptyMessage="No payment transactions recorded yet."
+      />
 
       {/* Process Refund Modal */}
       <Modal

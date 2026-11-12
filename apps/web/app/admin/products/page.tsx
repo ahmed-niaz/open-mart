@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/admin/layout/admin-page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -338,10 +337,10 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Tabs & Filters Bar */}
-      <Card className="border border-[#E5E0D5] bg-white shadow-xs">
-        <CardContent className="p-4 space-y-4">
-          {/* Top row: Status Tabs */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#E5E0D5]/60 pb-3">
+      <div className="space-y-3">
+        {/* Top row: Status Tabs */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
             <Tabs
               tabs={PRODUCT_STATUS_TABS}
               activeTab={activeTab}
@@ -350,89 +349,89 @@ export default function AdminProductsPage() {
                 setPage(1);
               }}
             />
-
-            <span className="text-xs text-[#6B756D] font-medium">
-              Showing {displayedProducts.length} of {total} products
-            </span>
           </div>
 
-          {/* Bottom row: Search + Category Filter + Stock Filter + Reset */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-            {/* Search */}
-            <div className="sm:col-span-5 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B756D]" />
-              <Input
-                type="text"
-                placeholder="Search products by title, SKU, or description..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 pr-8 h-9 text-xs"
-              />
-              {searchInput && (
-                <button
-                  type="button"
-                  onClick={() => setSearchInput('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B756D] hover:text-[#252A25]"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
+          <span className="text-xs text-[#6B756D] font-medium">
+            Showing {displayedProducts.length} of {total} products
+          </span>
+        </div>
 
-            {/* Category Filter */}
-            <div className="sm:col-span-3">
-              <Select
-                value={selectedCategory}
-                onChange={(e) => {
-                  setSelectedCategory(e.target.value);
-                  setPage(1);
-                }}
-                disabled={isLoadingCategories}
-                className="h-9 text-xs"
+        {/* Bottom row: Search + Category Filter + Stock Filter + Reset */}
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+          {/* Search */}
+          <div className="sm:col-span-5 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B756D]" />
+            <Input
+              type="text"
+              placeholder="Search products by title, SKU, or description..."
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 pr-8 h-9 text-xs"
+            />
+            {searchInput && (
+              <button
+                type="button"
+                onClick={() => setSearchInput('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B756D] hover:text-[#252A25]"
               >
-                <option value="">All Categories</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.slug || cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            {/* Stock Level Filter */}
-            <div className="sm:col-span-2">
-              <Select
-                value={stockFilter}
-                onChange={(e) => {
-                  setStockFilter(e.target.value);
-                  setPage(1);
-                }}
-                className="h-9 text-xs"
-              >
-                <option value="all">All Stock</option>
-                <option value="in_stock">In Stock</option>
-                <option value="out_of_stock">Out of Stock</option>
-              </Select>
-            </div>
-
-            {/* Per-Page Limit Selector */}
-            <div className="sm:col-span-2">
-              <Select
-                value={String(limit)}
-                onChange={(e) => {
-                  setLimit(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="h-9 text-xs"
-              >
-                <option value="10">10 per page</option>
-                <option value="25">25 per page</option>
-                <option value="50">50 per page</option>
-              </Select>
-            </div>
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Category Filter */}
+          <div className="sm:col-span-3">
+            <Select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setPage(1);
+              }}
+              disabled={isLoadingCategories}
+              className="h-9 text-xs"
+            >
+              <option value="">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.slug || cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Stock Level Filter */}
+          <div className="sm:col-span-2">
+            <Select
+              value={stockFilter}
+              onChange={(e) => {
+                setStockFilter(e.target.value);
+                setPage(1);
+              }}
+              className="h-9 text-xs"
+            >
+              <option value="all">All Stock</option>
+              <option value="in_stock">In Stock</option>
+              <option value="out_of_stock">Out of Stock</option>
+            </Select>
+          </div>
+
+          {/* Per-Page Limit Selector */}
+          <div className="sm:col-span-2">
+            <Select
+              value={String(limit)}
+              onChange={(e) => {
+                setLimit(Number(e.target.value));
+                setPage(1);
+              }}
+              className="h-9 text-xs"
+            >
+              <option value="10">10 per page</option>
+              <option value="25">25 per page</option>
+              <option value="50">50 per page</option>
+            </Select>
+          </div>
+        </div>
+      </div>
 
       {/* Products Data Table */}
       <div className="space-y-4">

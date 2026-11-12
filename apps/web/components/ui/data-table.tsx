@@ -114,7 +114,7 @@ export function DataTable<T>({
       </div>
 
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between px-2 text-xs text-[#6B756D]">
+        <div className="flex flex-col gap-2 px-1 text-xs text-[#6B756D] sm:flex-row sm:items-center sm:justify-between">
           <div>
             Page{' '}
             <span className="font-semibold text-[#252A25]">

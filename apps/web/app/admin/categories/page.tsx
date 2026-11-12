@@ -19,7 +19,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { AdminPageHeader } from '@/components/admin/layout/admin-page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -315,34 +314,31 @@ export default function AdminCategoriesPage() {
       </div>
 
       {/* Filter / Search Bar */}
-      <Card className="border border-[#E5E0D5] bg-white shadow-xs">
-        <CardContent className="p-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B756D]" />
-            <Input
-              type="text"
-              placeholder="Search categories by name, slug, or overview..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 pr-8 h-9 text-xs"
-            />
-            {searchInput && (
-              <button
-                type="button"
-                onClick={() => setSearchInput('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B756D] hover:text-[#252A25]"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B756D]" />
+          <Input
+            type="text"
+            placeholder="Search categories by name, slug, or overview..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-9 pr-8 h-9 text-xs"
+          />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => setSearchInput('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B756D] hover:text-[#252A25]"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
 
-          <span className="text-xs text-[#6B756D] font-medium">
-            Showing {filteredCategories.length} of {categories.length}{' '}
-            categories
-          </span>
-        </CardContent>
-      </Card>
+        <span className="text-xs text-[#6B756D] font-medium">
+          Showing {filteredCategories.length} of {categories.length} categories
+        </span>
+      </div>
 
       {/* Categories Data Table (without redundant outer card border) */}
       <DataTable

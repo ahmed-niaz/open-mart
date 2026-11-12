@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/admin/layout/admin-page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs } from '@/components/ui/tabs';
@@ -278,19 +277,19 @@ export default function AdminCustomersPage() {
       </div>
 
       {/* Filters and Search Bar */}
-      <Card className="border border-[#E5E0D5]">
-        <CardContent className="p-4 space-y-4 sm:flex sm:items-center sm:justify-between sm:space-y-0 gap-4">
-          <div className="flex-1 max-w-md relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B756D]" />
-            <Input
-              type="text"
-              placeholder="Search by name, email, or phone..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative w-full lg:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#6B756D]" />
+          <Input
+            type="text"
+            placeholder="Search by name, email, or phone..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-9"
+          />
+        </div>
 
+        <div className="min-w-0">
           <Tabs
             tabs={STATUS_TABS}
             activeTab={activeTab}
@@ -299,8 +298,8 @@ export default function AdminCustomersPage() {
               setPage(1);
             }}
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Customers Table */}
       <DataTable

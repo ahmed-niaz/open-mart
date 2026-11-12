@@ -210,7 +210,7 @@ export function SidebarInset({
   return (
     <div
       className={cn(
-        'flex min-h-screen flex-col transition-[padding] duration-200 ease-out',
+        'flex min-h-screen min-w-0 w-full flex-col overflow-x-clip transition-[padding] duration-200 ease-out',
         collapsed ? 'lg:pl-[76px]' : 'lg:pl-64',
         className,
       )}

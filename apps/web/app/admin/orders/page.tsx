@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 
 import { AdminPageHeader } from '@/components/admin/layout/admin-page-header';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -263,17 +262,19 @@ export default function AdminOrdersPage() {
       />
 
       {/* Filter Tabs & Search Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Tabs
-          tabs={ORDER_TABS}
-          activeTab={activeTab}
-          onChange={(tab) => {
-            setActiveTab(tab);
-            setPage(1);
-          }}
-        />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <Tabs
+            tabs={ORDER_TABS}
+            activeTab={activeTab}
+            onChange={(tab) => {
+              setActiveTab(tab);
+              setPage(1);
+            }}
+          />
+        </div>
 
-        <div className="w-full sm:w-72">
+        <div className="w-full lg:w-72 shrink-0">
           <Input
             placeholder="Search order #, customer, phone..."
             value={searchQuery}
@@ -284,23 +285,19 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Orders Data Table */}
-      <Card className="shadow-xs">
-        <CardContent className="pt-5">
-          <DataTable
-            columns={columns}
-            data={filteredOrders}
-            isLoading={isLoading}
-            emptyMessage={`No orders found matching filter '${activeTab}'.`}
-            onRowClick={(order) => setSelectedOrder(order)}
-            pagination={{
-              page,
-              totalPages,
-              totalCount: total,
-              onPageChange: (newPage) => setPage(newPage),
-            }}
-          />
-        </CardContent>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={filteredOrders}
+        isLoading={isLoading}
+        emptyMessage={`No orders found matching filter '${activeTab}'.`}
+        onRowClick={(order) => setSelectedOrder(order)}
+        pagination={{
+          page,
+          totalPages,
+          totalCount: total,
+          onPageChange: (newPage) => setPage(newPage),
+        }}
+      />
 
       {/* Ship Order Modal */}
       <Modal
