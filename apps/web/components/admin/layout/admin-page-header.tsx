@@ -32,7 +32,7 @@ export function AdminPageHeader({
     >
       <div className="space-y-1">
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav className="flex items-center gap-1.5 text-xs text-[#6B756D] mb-1">
+          <nav className="flex items-center gap-1.5 text-[13px] text-[#6B756D] mb-1">
             <Link
               href="/admin"
               className="hover:text-[#163A2B] transition-colors"
@@ -58,10 +58,10 @@ export function AdminPageHeader({
             ))}
           </nav>
         )}
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#163A2B]">
+        <h1 className="text-2xl sm:text-[28px] font-bold tracking-tight text-[#163A2B]">
           {title}
         </h1>
-        {subtitle && <p className="text-xs text-[#6B756D]">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-[#6B756D]">{subtitle}</p>}
       </div>
 
       {actions && (

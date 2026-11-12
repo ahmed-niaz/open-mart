@@ -16,7 +16,8 @@
   --color-info: #3973ac;
 
   --font-sans:
-    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
   --font-mono: monospace;
 }
 
@@ -36,11 +37,13 @@
   --color-info: #3973ac;
 
   --font-sans:
-    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
   --font-mono: monospace;
 }
 
 body {
+  position: relative;
   background-color: var(--color-page);
   color: var(--color-text-primary);
   font-family: var(--font-sans);

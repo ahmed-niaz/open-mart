@@ -79,7 +79,9 @@ export class DrizzleCategoryRepository implements CategoryRepositoryPort {
     try {
       if (category) {
         await this.cacheService.del(`category:id:${category.id.getValue()}`);
-        await this.cacheService.del(`category:slug:${category.slug.getValue()}`);
+        await this.cacheService.del(
+          `category:slug:${category.slug.getValue()}`,
+        );
       }
       await this.cacheService.delPattern('category:*');
       await this.cacheService.delPattern('product:list:*');

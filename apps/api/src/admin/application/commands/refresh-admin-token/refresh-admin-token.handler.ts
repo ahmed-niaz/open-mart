@@ -103,7 +103,9 @@ export class RefreshAdminTokenCommandHandler implements ICommandHandler<
     });
 
     const newHash = hashToken(newTokenPair.refreshToken);
-    const expiresAt = new Date(Date.now() + this.tokenService.getRefreshTokenMaxAgeMs());
+    const expiresAt = new Date(
+      Date.now() + this.tokenService.getRefreshTokenMaxAgeMs(),
+    );
     await this.sessionRepo.create({
       adminId: admin.id.value,
       tokenHash: newHash,

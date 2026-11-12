@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -17,7 +16,15 @@ import {
   ExternalLink,
   Image as ImageIcon,
 } from 'lucide-react';
+import {
+  Sidebar,
+  SidebarNavGroup,
+  SidebarNavItem,
+  SidebarTrigger,
+  useSidebarView,
+} from '@/components/ui/sidebar';
 import { useAdminAuth } from '@/hooks/admin/use-admin-auth';
+import { manrope } from '@/lib/fonts';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -119,118 +126,142 @@ const NAVIGATION_GROUPS: NavGroup[] = [
   },
 ];
 
-export function AdminSidebar({
-  isMobileOpen = false,
-  onCloseMobile,
-}: {
-  isMobileOpen?: boolean;
-  onCloseMobile?: () => void;
-}) {
+function AdminSidebarBody() {
   const pathname = usePathname();
   const { admin, logout, isLoggingOut } = useAdminAuth();
+  const { isCollapsed } = useSidebarView();
 
-  const sidebarContent = (
+  const initials = `${admin?.firstName ? admin.firstName.charAt(0) : 'A'}${
+    admin?.lastName ? admin.lastName.charAt(0) : 'D'
+  }`;
+
+  return (
     <div className="flex h-full flex-col justify-between bg-[#163A2B] text-white">
-      {/* Brand Header */}
-      <div>
-        <div className="flex h-16 items-center gap-3 px-6 border-b border-[#214D3A]">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white shadow-inner">
-            <ShoppingBag className="h-5 w-5 text-[#FAF7F0]" />
+      {/* Top Header + Navigation */}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {/* Brand Header */}
+        <div
+          className={cn(
+            'flex h-16 shrink-0 items-center border-b border-[#214D3A]',
+            isCollapsed ? 'justify-center px-2' : 'justify-between px-4',
+          )}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            <div
+              title={isCollapsed ? 'OPEN-MART Admin' : undefined}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white shadow-inner"
+            >
+              <ShoppingBag className="h-5 w-5 text-[#FAF7F0]" />
+            </div>
+            {!isCollapsed && (
+              <div className="min-w-0">
+                <span className="block truncate text-lg font-extrabold tracking-wider text-white">
+                  OPEN-MART
+                </span>
+                <span className="block truncate text-[11px] font-semibold tracking-widest text-[#E8DFD0]/75 uppercase">
+                  Merchant Admin
+                </span>
+              </div>
+            )}
           </div>
-          <div>
-            <span className="text-base font-extrabold tracking-wider text-white">
-              OPEN-MART
-            </span>
-            <span className="block text-[10px] font-semibold uppercase tracking-widest text-[#E8DFD0]/70">
-              Merchant Admin
-            </span>
-          </div>
+
+          {!isCollapsed && (
+            <SidebarTrigger
+              mode="desktop"
+              className="border-[#214D3A] bg-white/5 text-[#E8DFD0] hover:bg-white/15 hover:text-white"
+            />
+          )}
         </div>
 
-        {/* Navigation list */}
-        <div className="py-4 px-3 space-y-6 overflow-y-auto max-h-[calc(100vh-140px)]">
+        {/* Scrollable Navigation List */}
+        <div
+          className={cn(
+            'flex-1 overflow-y-auto py-4',
+            isCollapsed ? 'space-y-2 px-2' : 'space-y-5 px-3',
+          )}
+        >
           {NAVIGATION_GROUPS.map((group) => (
-            <div key={group.group} className="space-y-1">
-              <p className="px-3 text-[10px] font-bold tracking-widest text-[#E8DFD0]/50 uppercase">
-                {group.group}
-              </p>
-              <div className="mt-1 space-y-0.5">
-                {group.items.map((item) => {
-                  const isActive =
-                    item.href === '/admin'
-                      ? pathname === '/admin'
-                      : pathname.startsWith(item.href);
-                  const Icon = item.icon;
+            <SidebarNavGroup key={group.group} label={group.group}>
+              {group.items.map((item) => {
+                const isActive =
+                  item.href === '/admin'
+                    ? pathname === '/admin'
+                    : pathname.startsWith(item.href);
 
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={onCloseMobile}
-                      className={cn(
-                        'flex items-center gap-3 rounded-full px-3.5 py-2 text-xs font-medium transition-all select-none',
-                        isActive
-                          ? 'bg-[#214D3A] text-white shadow-xs font-semibold'
-                          : 'text-[#FAF7F0]/75 hover:bg-white/5 hover:text-white',
-                      )}
-                    >
-                      <Icon
-                        className={cn(
-                          'h-4 w-4',
-                          isActive ? 'text-[#FAF7F0]' : 'text-[#E8DFD0]/60',
-                        )}
-                      />
-                      <span>{item.title}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
+                return (
+                  <SidebarNavItem
+                    key={item.href}
+                    title={item.title}
+                    href={item.href}
+                    icon={item.icon}
+                    isActive={isActive}
+                  />
+                );
+              })}
+            </SidebarNavGroup>
           ))}
 
           {/* Quick link to storefront */}
-          <div className="pt-2 px-1">
-            <Link
+          <div className={cn('pt-2', !isCollapsed && 'px-1')}>
+            <SidebarNavItem
+              title="Live Storefront"
               href="/"
               target="_blank"
-              className="flex items-center justify-between rounded-full border border-[#214D3A] bg-white/5 px-3.5 py-2 text-xs font-medium text-[#FAF7F0]/80 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <ExternalLink className="h-3.5 w-3.5 text-[#E8DFD0]/70" />
-                Live Storefront
-              </span>
-              <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-[#E8DFD0]">
-                Visit
-              </span>
-            </Link>
+              icon={ExternalLink}
+              isActive={false}
+              badge="Visit"
+            />
           </div>
         </div>
       </div>
 
       {/* Admin User Card Footer */}
-      <div className="border-t border-[#214D3A] p-4 bg-[#122e22]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2F855A] text-xs font-bold text-white uppercase shadow-inner">
-              {admin?.firstName ? admin.firstName.charAt(0) : 'A'}
-              {admin?.lastName ? admin.lastName.charAt(0) : 'D'}
-            </div>
-            <div className="overflow-hidden">
-              <p className="truncate text-xs font-semibold text-white">
-                {admin
+      <div
+        className={cn(
+          'shrink-0 border-t border-[#214D3A] bg-[#122e22]',
+          isCollapsed ? 'p-2.5' : 'p-4',
+        )}
+      >
+        <div
+          className={cn(
+            'flex items-center',
+            isCollapsed ? 'flex-col gap-2' : 'justify-between',
+          )}
+        >
+          <div
+            title={
+              isCollapsed
+                ? admin
                   ? `${admin.firstName} ${admin.lastName}`
-                  : 'Administrator'}
-              </p>
-              <span className="inline-block text-[10px] font-medium uppercase text-[#E8DFD0]/70">
-                {admin?.role ? admin.role.replace('_', ' ') : 'Super Admin'}
-              </span>
+                  : 'Administrator'
+                : undefined
+            }
+            className="flex min-w-0 items-center gap-3"
+          >
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2F855A] text-sm font-bold text-white uppercase shadow-inner">
+              {initials}
             </div>
+            {!isCollapsed && (
+              <div className="min-w-0 overflow-hidden">
+                <p className="truncate text-sm font-semibold text-white">
+                  {admin
+                    ? `${admin.firstName} ${admin.lastName}`
+                    : 'Administrator'}
+                </p>
+                <span className="inline-block truncate text-[11px] font-medium text-[#E8DFD0]/75 uppercase">
+                  {admin?.role ? admin.role.replace('_', ' ') : 'Super Admin'}
+                </span>
+              </div>
+            )}
           </div>
+
           <button
+            type="button"
             onClick={() => logout()}
             disabled={isLoggingOut}
             title="Log Out"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#E8DFD0]/70 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+            aria-label="Log Out"
+            className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#E8DFD0]/75 transition-colors hover:bg-white/10 hover:text-white"
           >
             <LogOut className="h-4 w-4" />
           </button>
@@ -238,26 +269,16 @@ export function AdminSidebar({
       </div>
     </div>
   );
+}
 
+export function AdminSidebar() {
   return (
-    <>
-      {/* Desktop Persistent Sidebar */}
-      <aside className="hidden lg:fixed lg:inset-y-0 lg:z-40 lg:flex lg:w-64 lg:flex-col border-r border-[#214D3A]/40 shadow-sm">
-        {sidebarContent}
-      </aside>
-
-      {/* Mobile Drawer */}
-      {isMobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="fixed inset-0 bg-[#252A25]/50 backdrop-blur-xs transition-opacity"
-            onClick={onCloseMobile}
-          />
-          <div className="fixed inset-y-0 left-0 z-50 w-64 shadow-2xl animate-in slide-in-from-left duration-200">
-            {sidebarContent}
-          </div>
-        </div>
-      )}
-    </>
+    <Sidebar
+      className="border-r border-[#214D3A]/40 bg-[#163A2B] shadow-sm"
+      drawerTitle="Admin Navigation"
+      drawerClassName={`${manrope.variable} ${manrope.className} [--font-sans:var(--font-manrope),system-ui,-apple-system,sans-serif] bg-[#163A2B] font-sans text-white`}
+    >
+      <AdminSidebarBody />
+    </Sidebar>
   );
 }

@@ -29,10 +29,10 @@ export function KpiCard({
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B756D]">
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-[#6B756D]">
               {title}
             </p>
-            <h3 className="text-2xl font-bold tracking-tight text-[#163A2B]">
+            <h3 className="text-2xl sm:text-[28px] font-bold tracking-tight text-[#163A2B]">
               {value}
             </h3>
           </div>
@@ -42,11 +42,11 @@ export function KpiCard({
         </div>
 
         {(change !== undefined || subtitle) && (
-          <div className="mt-4 flex items-center gap-2 pt-2 border-t border-[#E5E0D5]/50 text-xs">
+          <div className="mt-4 flex items-center gap-2 pt-2 border-t border-[#E5E0D5]/50 text-[13px]">
             {change !== undefined && (
               <span
                 className={cn(
-                  'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 font-semibold text-xs',
+                  'inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 font-semibold text-xs',
                   isPositive
                     ? 'bg-[#267A46]/15 text-[#267A46]'
                     : 'bg-[#C53030]/15 text-[#C53030]',

@@ -57,4 +57,3 @@ export const redisProvider: Provider = {
     return client;
   },
 };
-

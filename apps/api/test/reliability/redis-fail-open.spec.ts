@@ -32,29 +32,51 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
     }
 
     it('returns cached data instantly on cache hit without calling database fetcher', async () => {
-      const mockProduct = { id: 'prod-123', title: 'Power Hoodie', unitPrice: 4500 };
+      const mockProduct = {
+        id: 'prod-123',
+        title: 'Power Hoodie',
+        unitPrice: 4500,
+      };
       const mockRedis = createMockRedis({
         'om:cache:product:id:prod-123': JSON.stringify(mockProduct),
       });
 
       const cacheService = new CacheService(mockRedis as any);
-      const dbFetcher = vi.fn(async () => ({ id: 'prod-123', title: 'DB Hoodie', unitPrice: 4500 }));
+      const dbFetcher = vi.fn(async () => ({
+        id: 'prod-123',
+        title: 'DB Hoodie',
+        unitPrice: 4500,
+      }));
 
-      const result = await cacheService.getOrSet('product:id:prod-123', dbFetcher, 180);
+      const result = await cacheService.getOrSet(
+        'product:id:prod-123',
+        dbFetcher,
+        180,
+      );
 
       expect(result).toEqual(mockProduct);
       expect(dbFetcher).not.toHaveBeenCalled();
-      expect(mockRedis.get).toHaveBeenCalledWith('om:cache:product:id:prod-123');
+      expect(mockRedis.get).toHaveBeenCalledWith(
+        'om:cache:product:id:prod-123',
+      );
     });
 
     it('executes database fetcher on cache miss and stores serialized result in Redis with TTL', async () => {
-      const mockProduct = { id: 'prod-999', title: 'Seamless Leggings', unitPrice: 3800 };
+      const mockProduct = {
+        id: 'prod-999',
+        title: 'Seamless Leggings',
+        unitPrice: 3800,
+      };
       const mockRedis = createMockRedis();
 
       const cacheService = new CacheService(mockRedis as any);
       const dbFetcher = vi.fn(async () => mockProduct);
 
-      const result = await cacheService.getOrSet('product:id:prod-999', dbFetcher, 180);
+      const result = await cacheService.getOrSet(
+        'product:id:prod-999',
+        dbFetcher,
+        180,
+      );
 
       expect(result).toEqual(mockProduct);
       expect(dbFetcher).toHaveBeenCalledTimes(1);
@@ -99,8 +121,16 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
 
     it('FAILS OPEN when Redis throws an error (does NOT crash or 500-error)', async () => {
       const mockRedis = {
-        get: vi.fn().mockRejectedValue(new Error('ECONNREFUSED: Redis server unreachable')),
-        set: vi.fn().mockRejectedValue(new Error('ECONNREFUSED: Redis server unreachable')),
+        get: vi
+          .fn()
+          .mockRejectedValue(
+            new Error('ECONNREFUSED: Redis server unreachable'),
+          ),
+        set: vi
+          .fn()
+          .mockRejectedValue(
+            new Error('ECONNREFUSED: Redis server unreachable'),
+          ),
       };
 
       const cacheService = new CacheService(mockRedis as any);
@@ -108,7 +138,11 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
       const dbFetcher = vi.fn(async () => dbProduct);
 
       // Must succeed transparently using DB fetcher despite Redis outage
-      const result = await cacheService.getOrSet('product:id:prod-live', dbFetcher, 180);
+      const result = await cacheService.getOrSet(
+        'product:id:prod-live',
+        dbFetcher,
+        180,
+      );
 
       expect(result).toEqual(dbProduct);
       expect(dbFetcher).toHaveBeenCalledTimes(1);
@@ -125,7 +159,11 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
       const dbProduct = { id: 'prod-timeout', title: 'Wrist Wraps' };
       const dbFetcher = vi.fn(async () => dbProduct);
 
-      const result = await cacheService.getOrSet('product:id:prod-timeout', dbFetcher, 180);
+      const result = await cacheService.getOrSet(
+        'product:id:prod-timeout',
+        dbFetcher,
+        180,
+      );
 
       expect(result).toEqual(dbProduct);
       expect(dbFetcher).toHaveBeenCalledTimes(1);
@@ -156,7 +194,13 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
       };
 
       const storage = new RedisThrottlerStorage(mockRedis as any);
-      const record = await storage.increment('ip-192.168.1.1', 60000, 100, 0, 'default');
+      const record = await storage.increment(
+        'ip-192.168.1.1',
+        60000,
+        100,
+        0,
+        'default',
+      );
 
       expect(record.totalHits).toBe(1);
       expect(record.timeToExpire).toBe(60);
@@ -172,7 +216,13 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
       };
 
       const storage = new RedisThrottlerStorage(mockRedis as any);
-      const record = await storage.increment('ip-spammer', 60000, 100, 30000, 'default');
+      const record = await storage.increment(
+        'ip-spammer',
+        60000,
+        100,
+        30000,
+        'default',
+      );
 
       expect(record.totalHits).toBe(101);
       expect(record.isBlocked).toBe(true);
@@ -191,7 +241,13 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
       };
 
       const storage = new RedisThrottlerStorage(mockRedis as any);
-      const record = await storage.increment('customer-checkout-ip', 60000, 100, 0, 'default');
+      const record = await storage.increment(
+        'customer-checkout-ip',
+        60000,
+        100,
+        0,
+        'default',
+      );
 
       // Fails open: returns safe hit count and isBlocked: false
       expect(record.totalHits).toBe(1);
@@ -225,7 +281,9 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
 
       expect(result).toEqual(mockCategory);
       expect(dbSelect).not.toHaveBeenCalled();
-      expect(mockRedis.get).toHaveBeenCalledWith('om:cache:category:id:cat-100');
+      expect(mockRedis.get).toHaveBeenCalledWith(
+        'om:cache:category:id:cat-100',
+      );
     });
 
     it('caches ListProductHandler query and enforces single-flight coalescing', async () => {
@@ -285,4 +343,3 @@ describe('Phase 3: Redis & Fail-Open Resilience Unit Tests', () => {
     });
   });
 });
-

@@ -3,7 +3,9 @@ import type { ThrottlerStorage } from '@nestjs/throttler';
 import { Redis } from 'ioredis';
 import { REDIS_CLIENT } from './redis.constants.js';
 
-type ThrottlerStorageRecord = Awaited<ReturnType<ThrottlerStorage['increment']>>;
+type ThrottlerStorageRecord = Awaited<
+  ReturnType<ThrottlerStorage['increment']>
+>;
 
 @Injectable()
 export class RedisThrottlerStorage implements ThrottlerStorage {

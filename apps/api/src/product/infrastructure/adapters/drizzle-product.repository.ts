@@ -184,13 +184,28 @@ export class DrizzleProductRepository implements ProductRepositoryPort {
     const deleted = await this.db
       .delete(productsSchema)
       .where(eq(productsSchema.id, id.getValue()))
-      .returning({ id: productsSchema.id });
+      .returning({
+        id: productsSchema.id,
+        sku: productsSchema.sku,
+      });
 
     if (deleted.length === 0) {
       throw new ApplicationException(
         `Product with id '${id.getValue()}' not found.`,
         ApplicationExceptionCode.NOT_FOUND,
       );
+    }
+
+    if (this.cacheService) {
+      try {
+        await this.cacheService.del(`product:id:${deleted[0].id}`);
+        if (deleted[0].sku) {
+          await this.cacheService.del(`product:sku:${deleted[0].sku}`);
+        }
+        await this.cacheService.delPattern('product:list:*');
+      } catch {
+        // Fail-open: cache eviction errors must not fail database transaction
+      }
     }
   }
 

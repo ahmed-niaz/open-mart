@@ -9,7 +9,10 @@ import {
 import { hashToken } from '../../../../shared/infrastructure/auth/token-hash.util.js';
 
 @CommandHandler(LogoutAdminCommand)
-export class LogoutAdminCommandHandler implements ICommandHandler<LogoutAdminCommand, void> {
+export class LogoutAdminCommandHandler implements ICommandHandler<
+  LogoutAdminCommand,
+  void
+> {
   private readonly logger = new Logger(LogoutAdminCommandHandler.name);
 
   constructor(
@@ -27,4 +30,3 @@ export class LogoutAdminCommandHandler implements ICommandHandler<LogoutAdminCom
     this.logger.log('Admin session revoked on logout.');
   }
 }
-

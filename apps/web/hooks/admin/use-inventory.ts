@@ -130,6 +130,35 @@ export function useInventorySummary() {
 
 export function useInventory(params: UseInventoryParams = {}) {
   const queryClient = useQueryClient();
+
+  const invalidateInventoryQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ['admin-inventory'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['admin-inventory-movements'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['admin-inventory-summary'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['analytics-inventory-health'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['admin-products'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['admin-product'],
+        refetchType: 'all',
+      }),
+    ]);
+  };
   const page = params.page || 1;
   const limit = params.limit || 20;
   const search = params.search || undefined;
@@ -256,16 +285,9 @@ export function useInventory(params: UseInventoryParams = {}) {
         }),
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Inventory restocked successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
-      queryClient.invalidateQueries({
-        queryKey: ['admin-inventory-movements'],
-      });
-      queryClient.invalidateQueries({ queryKey: ['admin-inventory-summary'] });
-      queryClient.invalidateQueries({
-        queryKey: ['analytics-inventory-health'],
-      });
+      await invalidateInventoryQueries();
     },
   });
 
@@ -290,13 +312,9 @@ export function useInventory(params: UseInventoryParams = {}) {
         }),
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Stock adjustment applied');
-      queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
-      queryClient.invalidateQueries({
-        queryKey: ['admin-inventory-movements'],
-      });
-      queryClient.invalidateQueries({ queryKey: ['admin-inventory-summary'] });
+      await invalidateInventoryQueries();
     },
   });
 
@@ -315,13 +333,9 @@ export function useInventory(params: UseInventoryParams = {}) {
         }),
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Physical stock count reconciled');
-      queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
-      queryClient.invalidateQueries({
-        queryKey: ['admin-inventory-movements'],
-      });
-      queryClient.invalidateQueries({ queryKey: ['admin-inventory-summary'] });
+      await invalidateInventoryQueries();
     },
   });
 

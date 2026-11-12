@@ -16,9 +16,7 @@ import { AdminId } from '../../src/admin/domain/value-objects/admin-id.vo.js';
 import { AdminEmail } from '../../src/admin/domain/value-objects/admin-email.vo.js';
 import { AdminRoleVO } from '../../src/admin/domain/value-objects/admin-role.vo.js';
 import { AdminPasswordHash } from '../../src/admin/domain/value-objects/admin-password-hash.vo.js';
-import {
-  ApplicationExceptionCode,
-} from '../../src/shared/domain/exceptions/application.exception.js';
+import { ApplicationExceptionCode } from '../../src/shared/domain/exceptions/application.exception.js';
 import { hashToken } from '../../src/shared/infrastructure/auth/token-hash.util.js';
 
 describe('Phase 4: DB Session & Refresh Token Revocation Unit Tests', () => {
@@ -73,7 +71,9 @@ describe('Phase 4: DB Session & Refresh Token Revocation Unit Tests', () => {
         scope: 'admin',
         role: 'super-admin',
       }),
-      getRefreshTokenMaxAgeMs: vi.fn().mockReturnValue(27 * 24 * 60 * 60 * 1000),
+      getRefreshTokenMaxAgeMs: vi
+        .fn()
+        .mockReturnValue(27 * 24 * 60 * 60 * 1000),
     };
 
     mockAuditPort = {
@@ -190,7 +190,9 @@ describe('Phase 4: DB Session & Refresh Token Revocation Unit Tests', () => {
       );
 
       // Suspected reuse -> wipes all sessions for this admin ID
-      expect(mockSessionRepo.revokeAllByAdminId).toHaveBeenCalledWith(adminIdStr);
+      expect(mockSessionRepo.revokeAllByAdminId).toHaveBeenCalledWith(
+        adminIdStr,
+      );
       expect(mockSessionRepo.create).not.toHaveBeenCalled();
     });
 
@@ -214,7 +216,9 @@ describe('Phase 4: DB Session & Refresh Token Revocation Unit Tests', () => {
         handler.execute(new RefreshAdminTokenCommand(rawRefreshToken)),
       ).rejects.toThrow(/Session has expired/);
 
-      expect(mockSessionRepo.revokeByTokenHash).toHaveBeenCalledWith(expiredHash);
+      expect(mockSessionRepo.revokeByTokenHash).toHaveBeenCalledWith(
+        expiredHash,
+      );
       expect(mockSessionRepo.create).not.toHaveBeenCalled();
     });
 

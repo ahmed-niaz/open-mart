@@ -1,5 +1,5 @@
-'use client';
+import { StorefrontHero } from '@/components/storefront/home/storefront-hero';
 
 export default function StorefrontHomePage() {
-  return <div>storefront</div>;
+  return <StorefrontHero />;
 }

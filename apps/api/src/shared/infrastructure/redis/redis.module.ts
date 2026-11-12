@@ -9,4 +9,3 @@ import { REDIS_CLIENT } from './redis.constants.js';
   exports: [REDIS_CLIENT, RedisThrottlerStorage],
 })
 export class RedisModule {}
-

@@ -107,7 +107,9 @@ export class LoginAdminCommandHandler implements ICommandHandler<
 
     // Persist DB session for revocation capability
     const tokenHash = hashToken(tokenPair.refreshToken);
-    const expiresAt = new Date(Date.now() + this.tokenService.getRefreshTokenMaxAgeMs());
+    const expiresAt = new Date(
+      Date.now() + this.tokenService.getRefreshTokenMaxAgeMs(),
+    );
     await this.sessionRepo.create({
       adminId: admin.id.value,
       tokenHash,

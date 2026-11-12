@@ -38,7 +38,7 @@ export function CardTitle({
   return (
     <h3
       className={cn(
-        'font-semibold leading-none tracking-tight text-base text-[#252A25]',
+        'font-semibold leading-none tracking-tight text-[17px] text-[#252A25]',
         className,
       )}
       {...props}
@@ -50,7 +50,7 @@ export function CardDescription({
   className,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-xs text-[#6B756D]', className)} {...props} />;
+  return <p className={cn('text-sm text-[#6B756D]', className)} {...props} />;
 }
 
 export function CardContent({

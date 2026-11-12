@@ -38,8 +38,8 @@ export function DataTable<T>({
   return (
     <div className={cn('w-full space-y-4', className)}>
       <div className="overflow-x-auto rounded-xl border border-[#E5E0D5] bg-white shadow-xs">
-        <table className="w-full text-left text-sm text-[#252A25]">
-          <thead className="border-b border-[#E5E0D5] bg-[#FAF7F0]/80 text-xs font-semibold uppercase tracking-wider text-[#6B756D]">
+        <table className="w-full text-left text-[15px] text-[#252A25]">
+          <thead className="border-b border-[#E5E0D5] bg-[#FAF7F0]/80 text-[13px] font-semibold uppercase tracking-wider text-[#6B756D]">
             <tr>
               {columns.map((col, index) => (
                 <th
@@ -66,7 +66,7 @@ export function DataTable<T>({
                 >
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Loader2 className="h-6 w-6 animate-spin text-[#163A2B]" />
-                    <span className="text-xs">Loading data...</span>
+                    <span className="text-sm">Loading data...</span>
                   </div>
                 </td>
               </tr>

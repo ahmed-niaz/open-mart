@@ -4,7 +4,9 @@ import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { AdminSidebar } from '@/components/admin/layout/admin-sidebar';
 import { AdminHeader } from '@/components/admin/layout/admin-header';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { useAdminAuth } from '@/hooks/admin/use-admin-auth';
+import { manrope } from '@/lib/fonts';
 import { Loader2 } from 'lucide-react';
 
 export default function AdminLayout({
@@ -14,7 +16,6 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
   const { isLoading, isAuthenticated, refetch } = useAdminAuth();
 
   // If on login or register page, render full screen without dashboard chrome
@@ -40,16 +41,20 @@ export default function AdminLayout({
     }
   }, [isLoading, isAuthenticated, isAuthPage, router]);
 
+  const adminFontClass = `${manrope.variable} ${manrope.className} [--font-sans:var(--font-manrope),system-ui,-apple-system,sans-serif] font-sans text-[15px] leading-relaxed`;
+
   if (isAuthPage) {
-    return <>{children}</>;
+    return <div className={adminFontClass}>{children}</div>;
   }
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div
+        className={`${adminFontClass} flex min-h-screen items-center justify-center bg-white`}
+      >
         <div className="flex flex-col items-center gap-3 text-center">
           <Loader2 className="h-8 w-8 animate-spin text-[#163A2B]" />
-          <p className="text-xs font-semibold text-[#6B756D] uppercase tracking-wider">
+          <p className="text-sm font-semibold text-[#6B756D] uppercase tracking-wider">
             Loading Admin Workspace...
           </p>
         </div>
@@ -58,20 +63,19 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Persistent / Mobile Sidebar */}
-      <AdminSidebar
-        isMobileOpen={isMobileSidebarOpen}
-        onCloseMobile={() => setIsMobileSidebarOpen(false)}
-      />
+    <SidebarProvider storageKey="openmart_admin_sidebar_collapsed">
+      <div className={`${adminFontClass} min-h-screen bg-white`}>
+        {/* Desktop Collapsible Rail + Mobile Tailwind Drawer */}
+        <AdminSidebar />
 
-      {/* Main Content Area */}
-      <div className="lg:pl-64 flex flex-col min-h-screen">
-        <AdminHeader onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
+        {/* Main Content Area synced with sidebar width */}
+        <SidebarInset>
+          <AdminHeader />
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+            {children}
+          </main>
+        </SidebarInset>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

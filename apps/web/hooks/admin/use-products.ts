@@ -231,6 +231,39 @@ export function useProducts(
     },
   });
 
+  const invalidateProductQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ['admin-products'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['admin-product'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['admin-inventory'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['admin-inventory-summary'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['store-products'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['analytics-top-products'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['analytics-inventory-health'],
+        refetchType: 'all',
+      }),
+    ]);
+  };
+
   const createProduct = useMutation({
     mutationFn: async (data: CreateProductInput | FormData) => {
       let body: BodyInit;
@@ -274,10 +307,9 @@ export function useProducts(
         body,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Product created successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      queryClient.invalidateQueries({ queryKey: ['store-products'] });
+      await invalidateProductQueries();
     },
   });
 
@@ -320,10 +352,9 @@ export function useProducts(
         }),
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Product updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      queryClient.invalidateQueries({ queryKey: ['store-products'] });
+      await invalidateProductQueries();
     },
   });
 
@@ -333,10 +364,9 @@ export function useProducts(
         method: 'DELETE',
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Product deleted');
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      queryClient.invalidateQueries({ queryKey: ['store-products'] });
+      await invalidateProductQueries();
     },
   });
 
@@ -346,10 +376,9 @@ export function useProducts(
         method: 'PATCH',
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Product archived successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      queryClient.invalidateQueries({ queryKey: ['store-products'] });
+      await invalidateProductQueries();
     },
   });
 
@@ -359,10 +388,9 @@ export function useProducts(
         method: 'PATCH',
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Product restored to draft successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      queryClient.invalidateQueries({ queryKey: ['store-products'] });
+      await invalidateProductQueries();
     },
   });
 

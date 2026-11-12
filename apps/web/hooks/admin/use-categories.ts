@@ -65,6 +65,27 @@ export function useCategories() {
     },
   });
 
+  const invalidateCategoryQueries = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ['admin-categories'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['storefront-categories-tree'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['admin-products'],
+        refetchType: 'all',
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['admin-product'],
+        refetchType: 'all',
+      }),
+    ]);
+  };
+
   const createCategory = useMutation({
     mutationFn: async (data: {
       name: string;
@@ -82,10 +103,9 @@ export function useCategories() {
         }),
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Category created successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      await invalidateCategoryQueries();
     },
   });
 
@@ -107,10 +127,9 @@ export function useCategories() {
         }),
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Category updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      await invalidateCategoryQueries();
     },
   });
 
@@ -120,10 +139,9 @@ export function useCategories() {
         method: 'DELETE',
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Category deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      await invalidateCategoryQueries();
     },
   });
 
@@ -142,10 +160,9 @@ export function useCategories() {
         },
       );
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success('Category status updated');
-      queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      await invalidateCategoryQueries();
     },
   });
 

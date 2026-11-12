@@ -94,13 +94,16 @@ export class ListProductHandler implements IQueryHandler<
           ];
 
           if (isUuid) {
-            categoryFilterConditions.push(eq(productsTable.categoryId, category));
+            categoryFilterConditions.push(
+              eq(productsTable.categoryId, category),
+            );
           }
 
           conditions.push(or(...categoryFilterConditions));
         }
 
-        const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+        const whereClause =
+          conditions.length > 0 ? and(...conditions) : undefined;
 
         // 5. Total Count Query
         const [countResult] = await this.db
@@ -135,10 +138,7 @@ export class ListProductHandler implements IQueryHandler<
           .offset((page - 1) * limit);
 
         const dtos = rows.map(({ product, category: cat }) =>
-          ProductResponseDto.fromPersistence(
-            product,
-            cat?.id ? cat : null,
-          ),
+          ProductResponseDto.fromPersistence(product, cat?.id ? cat : null),
         );
 
         return PaginatedResult.create(dtos, total, page, limit);

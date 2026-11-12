@@ -79,6 +79,7 @@ export async function apiClient<T>(
 
   const config: RequestInit = {
     method: customConfig.method || 'GET',
+    cache: customConfig.cache ?? 'no-store',
     headers: {
       ...defaultHeaders,
       ...headers,

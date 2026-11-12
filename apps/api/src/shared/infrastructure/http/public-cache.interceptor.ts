@@ -56,15 +56,23 @@ export class HttpCacheInterceptor implements NestInterceptor {
       return next.handle();
     }
 
-    // 5. Bypass Edge cache if request specifically queries inactive, draft, or all items
+    // 5. Bypass Edge cache if request specifically queries inactive, draft, or all items,
+    // or carries authenticated admin credentials.
     const queryStatus =
       typeof req.query?.status === 'string'
         ? req.query.status.toLowerCase().trim()
         : undefined;
+    const queryIsActive =
+      typeof req.query?.isActive === 'string'
+        ? req.query.isActive.toLowerCase().trim()
+        : undefined;
     const queryIncludeInactive = req.query?.includeInactive === 'true';
+    const hasAuthHeader = Boolean(req.headers?.authorization);
 
     const isBypassRequested =
+      hasAuthHeader ||
       queryIncludeInactive ||
+      (queryIsActive !== undefined && queryIsActive !== 'true') ||
       (queryStatus !== undefined && queryStatus !== 'active');
 
     if (isBypassRequested) {

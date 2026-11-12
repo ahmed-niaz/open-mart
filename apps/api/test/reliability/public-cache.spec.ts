@@ -178,9 +178,13 @@ describe('Public Cache & CDN Edge Infrastructure', () => {
       );
 
       const interceptor = new HttpCacheInterceptor(reflector);
-      const { mockContext, headersMap } = createMockContext('GET', {}, {
-        vary: 'Origin',
-      });
+      const { mockContext, headersMap } = createMockContext(
+        'GET',
+        {},
+        {
+          vary: 'Origin',
+        },
+      );
       const next: CallHandler = {
         handle: () => of({ categories: [] }),
       };
