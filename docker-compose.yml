@@ -42,8 +42,40 @@ services:
       timeout: 3s
       retries: 5
 
+  # Dedicated persistent Redis instance for BullMQ background job queues.
+  # Uses `noeviction` + AOF (`--appendonly yes`) so queued jobs (emails, R2 purges)
+  # are never silently evicted under memory pressure or lost across restarts.
+  redis-queue:
+    image: redis:7-alpine
+    container_name: openmart-redis-queue
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_QUEUE_PASSWORD:-redismartqueue}
+      --maxmemory 512mb
+      --maxmemory-policy noeviction
+      --appendonly yes
+    ports:
+      - '${REDIS_QUEUE_PORT:-6380}:6379'
+    volumes:
+      - redis_queue_data:/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'redis-cli',
+          '-a',
+          '${REDIS_QUEUE_PASSWORD:-redismartqueue}',
+          'ping',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
 volumes:
   postgres_data:
     name: api_postgres_data
   redis_data:
     name: api_redis_data
+  redis_queue_data:
+    name: api_redis_queue_data

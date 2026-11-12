@@ -1,4 +1,5 @@
 export const NOTIFICATION_PORT = Symbol('NOTIFICATION_PORT');
+export const DIRECT_NOTIFICATION_PORT = Symbol('DIRECT_NOTIFICATION_PORT');
 
 export interface SendEmailInput {
   to: string;

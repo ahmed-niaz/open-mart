@@ -1,31 +1,81 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 import { EventBus } from '@nestjs/cqrs';
+import postgres from 'postgres';
 
 import { OutboxService } from './outbox.service.js';
 import { deserializeOutboxEvent } from './event-registry.js';
 
 @Injectable()
-export class OutboxProcessorJob implements OnModuleInit {
+export class OutboxProcessorJob implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(OutboxProcessorJob.name);
   private isProcessing = false;
+  private listenClient?: ReturnType<typeof postgres>;
 
   constructor(
     private readonly outboxService: OutboxService,
     private readonly eventBus: EventBus,
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
     this.outboxService.onSweepTrigger(() => {
       void this.sweepOutbox();
     });
+
+    if (process.env.VITEST) {
+      return;
+    }
+
+    const dbUrl = this.configService?.get<string>('POSTGRES_DB_URL');
+    if (!dbUrl) {
+      return;
+    }
+
+    try {
+      this.listenClient = postgres(dbUrl, {
+        max: 1,
+        idle_timeout: 0,
+        connect_timeout: 10,
+      });
+
+      await this.listenClient.listen('outbox_wakeup', () => {
+        void this.sweepOutbox();
+      });
+      this.logger.log(
+        "Subscribed to PostgreSQL 'outbox_wakeup' LISTEN/NOTIFY channel.",
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(
+        `Failed to start PostgreSQL outbox LISTEN subscriber (${msg}). Falling back to periodic Cron sweep.`,
+      );
+    }
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    if (this.listenClient) {
+      try {
+        await this.listenClient.end({ timeout: 2 });
+      } catch {
+        // Ignore teardown errors during shutdown
+      }
+    }
   }
 
   /**
-   * Sweeps pending outbox events every 2 seconds.
+   * Safety fallback sweep every 5 seconds in case a NOTIFY signal is missed.
+   * Primary low-latency wakeup uses PostgreSQL LISTEN/NOTIFY (`outbox_wakeup`).
    * Multi-instance safe: Uses SELECT ... FOR UPDATE SKIP LOCKED.
    */
-  @Cron('*/2 * * * * *')
+  @Cron('*/5 * * * * *')
   async sweepOutbox(): Promise<void> {
     if (this.isProcessing) {
       return;

@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "pnpm -r --parallel run dev",
     "dev:api": "pnpm --filter api run dev",
+    "dev:worker": "pnpm --filter api run start:worker:watch",
     "dev:web": "pnpm --filter web run dev",
     "build": "pnpm -r run build",
     "build:api": "pnpm --filter api run build",

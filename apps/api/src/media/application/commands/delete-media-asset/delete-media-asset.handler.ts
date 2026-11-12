@@ -1,10 +1,14 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject, Logger, Optional } from '@nestjs/common';
 import { DeleteMediaAssetCommand } from './delete-media-asset.command.js';
 import {
   MEDIA_REPOSITORY,
   type MediaRepositoryPort,
 } from '../../ports/media.repository.js';
+import {
+  MEDIA_CLEANUP_PORT,
+  type MediaCleanupPort,
+} from '../../ports/media-cleanup.port.js';
 import {
   STORAGE_SERVICE,
   type StoragePort,
@@ -27,6 +31,9 @@ export class DeleteMediaAssetHandler implements ICommandHandler<
     private readonly mediaRepository: MediaRepositoryPort,
     @Inject(STORAGE_SERVICE)
     private readonly storageService: StoragePort,
+    @Optional()
+    @Inject(MEDIA_CLEANUP_PORT)
+    private readonly mediaCleanup?: MediaCleanupPort,
   ) {}
 
   async execute(command: DeleteMediaAssetCommand): Promise<void> {
@@ -47,7 +54,21 @@ export class DeleteMediaAssetHandler implements ICommandHandler<
       );
     }
 
-    // 1. Delete physical object from Cloudflare R2
+    if (this.mediaCleanup) {
+      // Delete database record first, then enqueue asynchronous R2 purge with retries
+      await this.mediaRepository.delete(asset.id);
+      this.logger.log(
+        `Deleted media asset record from database: ${asset.id.getValue()}`,
+      );
+      await this.mediaCleanup.enqueueStorageDelete({
+        storageKey: asset.storageKey,
+        mediaId: asset.id.getValue(),
+        reason: 'delete_media_asset',
+      });
+      return;
+    }
+
+    // Synchronous fallback (e.g., direct unit test instantiation without queue port)
     try {
       await this.storageService.delete(asset.storageKey);
       this.logger.log(`Purged asset from Cloudflare R2: ${asset.storageKey}`);
@@ -58,7 +79,6 @@ export class DeleteMediaAssetHandler implements ICommandHandler<
       );
     }
 
-    // 2. Delete database record
     await this.mediaRepository.delete(asset.id);
     this.logger.log(
       `Deleted media asset record from database: ${asset.id.getValue()}`,

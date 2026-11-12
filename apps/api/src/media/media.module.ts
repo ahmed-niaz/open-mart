@@ -3,7 +3,10 @@ import { CqrsModule } from '@nestjs/cqrs';
 import { StorageModule } from '../shared/infrastructure/storage/storage.module.js';
 
 import { MEDIA_REPOSITORY } from './application/ports/media.repository.js';
+import { MEDIA_CLEANUP_PORT } from './application/ports/media-cleanup.port.js';
 import { DrizzleMediaRepository } from './infrastructure/adapters/drizzle-media.repository.js';
+import { BullMqMediaCleanupAdapter } from './infrastructure/queues/bullmq-media-cleanup.adapter.js';
+import { MediaCleanupWorkerProcessor } from './infrastructure/queues/media-cleanup-worker.processor.js';
 
 import { UploadMediaHandler } from './application/commands/upload-media/upload-media.handler.js';
 import { UpdateMediaMetadataHandler } from './application/commands/update-media-metadata/update-media-metadata.handler.js';
@@ -37,9 +40,14 @@ const QueryHandlers = [
       provide: MEDIA_REPOSITORY,
       useClass: DrizzleMediaRepository,
     },
+    {
+      provide: MEDIA_CLEANUP_PORT,
+      useClass: BullMqMediaCleanupAdapter,
+    },
+    MediaCleanupWorkerProcessor,
     ...CommandHandlers,
     ...QueryHandlers,
   ],
-  exports: [MEDIA_REPOSITORY],
+  exports: [MEDIA_REPOSITORY, MEDIA_CLEANUP_PORT],
 })
 export class MediaModule {}

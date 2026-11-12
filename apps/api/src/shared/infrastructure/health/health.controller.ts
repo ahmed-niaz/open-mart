@@ -1,4 +1,11 @@
-import { Controller, Get, HttpStatus, Inject, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpStatus,
+  Inject,
+  Optional,
+  Res,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { sql } from 'drizzle-orm';
 import { Redis } from 'ioredis';
@@ -7,12 +14,14 @@ import {
   type DrizzleDB,
 } from '../database/postgres/drizzle.provider.js';
 import { REDIS_CLIENT } from '../redis/redis.constants.js';
+import { QueueConnectionService } from '../queue/queue.service.js';
 
 @Controller('health')
 export class HealthController {
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleDB,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    @Optional() private readonly queueConnection?: QueueConnectionService,
   ) {}
 
   /**
@@ -48,6 +57,13 @@ export class HealthController {
       redisStatus = 'degraded (failing open)';
     }
 
+    const queueHealthy = this.queueConnection
+      ? await this.queueConnection.ping(100)
+      : false;
+    const redisQueueStatus = queueHealthy
+      ? 'connected'
+      : 'degraded (failing open)';
+
     try {
       await this.db.execute(sql`SELECT 1`);
 
@@ -55,6 +71,7 @@ export class HealthController {
         status: 'ok',
         database: 'connected',
         redis: redisStatus,
+        redisQueue: redisQueueStatus,
         timestamp: new Date().toISOString(),
       });
     } catch (err: any) {
@@ -62,6 +79,7 @@ export class HealthController {
         status: 'error',
         database: 'disconnected',
         redis: redisStatus,
+        redisQueue: redisQueueStatus,
         error: err.message || 'Database ping failed',
         timestamp: new Date().toISOString(),
       });

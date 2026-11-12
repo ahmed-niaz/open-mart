@@ -1,10 +1,14 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject, Logger, Optional } from '@nestjs/common';
 import { BulkDeleteMediaCommand } from './bulk-delete-media.command.js';
 import {
   MEDIA_REPOSITORY,
   type MediaRepositoryPort,
 } from '../../ports/media.repository.js';
+import {
+  MEDIA_CLEANUP_PORT,
+  type MediaCleanupPort,
+} from '../../ports/media-cleanup.port.js';
 import {
   STORAGE_SERVICE,
   type StoragePort,
@@ -23,6 +27,9 @@ export class BulkDeleteMediaHandler implements ICommandHandler<
     private readonly mediaRepository: MediaRepositoryPort,
     @Inject(STORAGE_SERVICE)
     private readonly storageService: StoragePort,
+    @Optional()
+    @Inject(MEDIA_CLEANUP_PORT)
+    private readonly mediaCleanup?: MediaCleanupPort,
   ) {}
 
   async execute(
@@ -46,16 +53,25 @@ export class BulkDeleteMediaHandler implements ICommandHandler<
           continue;
         }
 
-        try {
-          await this.storageService.delete(asset.storageKey);
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          this.logger.warn(
-            `Could not delete storage key '${asset.storageKey}': ${msg}`,
-          );
-        }
+        if (this.mediaCleanup) {
+          await this.mediaRepository.delete(asset.id);
+          await this.mediaCleanup.enqueueStorageDelete({
+            storageKey: asset.storageKey,
+            mediaId: asset.id.getValue(),
+            reason: 'bulk_delete_media',
+          });
+        } else {
+          try {
+            await this.storageService.delete(asset.storageKey);
+          } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : String(err);
+            this.logger.warn(
+              `Could not delete storage key '${asset.storageKey}': ${msg}`,
+            );
+          }
 
-        await this.mediaRepository.delete(asset.id);
+          await this.mediaRepository.delete(asset.id);
+        }
         deletedCount++;
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);

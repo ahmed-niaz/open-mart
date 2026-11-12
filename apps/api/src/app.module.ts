@@ -25,6 +25,7 @@ import { HealthModule } from './shared/infrastructure/health/health.module.js';
 import { HttpCacheInterceptor } from './shared/infrastructure/http/public-cache.interceptor.js';
 import { RedisModule } from './shared/infrastructure/redis/redis.module.js';
 import { CacheModule } from './shared/infrastructure/cache/cache.module.js';
+import { QueueModule } from './shared/infrastructure/queue/queue.module.js';
 import { RedisThrottlerStorage } from './shared/infrastructure/redis/redis-throttler.storage.js';
 
 @Module({
@@ -39,6 +40,7 @@ import { RedisThrottlerStorage } from './shared/infrastructure/redis/redis-throt
 
     RedisModule,
     CacheModule,
+    QueueModule,
 
     ThrottlerModule.forRootAsync({
       imports: [RedisModule],

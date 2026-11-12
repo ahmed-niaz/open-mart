@@ -26,7 +26,7 @@ export class OutboxService {
   }
 
   /**
-   * Wakes up the outbox poller asynchronously (near-zero latency).
+   * Wakes up the outbox poller asynchronously (in-process + cross-process via PostgreSQL NOTIFY).
    */
   triggerSweep(): void {
     if (this.sweepListener) {
@@ -36,6 +36,15 @@ export class OutboxService {
         } catch (err: any) {
           this.logger.error(`Sweep trigger error: ${err.message}`);
         }
+      });
+    }
+
+    if (!process.env.VITEST) {
+      void Promise.resolve(
+        this.db.execute(sql`SELECT pg_notify('outbox_wakeup', '1')`),
+      ).catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.debug(`PostgreSQL outbox NOTIFY skipped: ${msg}`);
       });
     }
   }

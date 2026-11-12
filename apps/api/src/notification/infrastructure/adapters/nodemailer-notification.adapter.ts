@@ -14,7 +14,10 @@ export class NodemailerNotificationAdapter implements NotificationPort {
   private readonly from: string;
   private readonly logger = new Logger(NodemailerNotificationAdapter.name);
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly throwOnError = false,
+  ) {
     const host = this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com');
     const port = Number(this.configService.get<number>('SMTP_PORT', 465));
     const secure =
@@ -57,7 +60,10 @@ export class NodemailerNotificationAdapter implements NotificationPort {
         `Failed to send email to ${input.to}: ${(error as Error).message}`,
         (error as Error).stack,
       );
-      // We log error rather than throwing to prevent unhandled background event crashes
+      if (this.throwOnError) {
+        throw error;
+      }
+      // In non-worker inline fallback mode, log rather than crashing background event handlers
     }
   }
 }
