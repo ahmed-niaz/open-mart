@@ -150,7 +150,7 @@ export const discountTargetProductsSchema = pgTable(
       .references(() => discountsSchema.id, { onDelete: 'cascade' }),
     productId: uuid('product_id')
       .notNull()
-      .references(() => productsSchema.id, { onDelete: 'restrict' }),
+      .references(() => productsSchema.id, { onDelete: 'cascade' }),
   },
   (table) => [
     primaryKey({ columns: [table.discountId, table.productId] }),

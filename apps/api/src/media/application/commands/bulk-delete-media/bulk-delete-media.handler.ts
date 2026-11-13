@@ -10,6 +10,10 @@ import {
   type MediaCleanupPort,
 } from '../../ports/media-cleanup.port.js';
 import {
+  PRODUCT_MEDIA_DETACHER_PORT,
+  type ProductMediaDetacherPort,
+} from '../../ports/product-media-detacher.port.js';
+import {
   STORAGE_SERVICE,
   type StoragePort,
 } from '../../../../shared/application/ports/storage.port.js';
@@ -30,6 +34,9 @@ export class BulkDeleteMediaHandler implements ICommandHandler<
     @Optional()
     @Inject(MEDIA_CLEANUP_PORT)
     private readonly mediaCleanup?: MediaCleanupPort,
+    @Optional()
+    @Inject(PRODUCT_MEDIA_DETACHER_PORT)
+    private readonly productMediaDetacher?: ProductMediaDetacherPort,
   ) {}
 
   async execute(
@@ -40,6 +47,8 @@ export class BulkDeleteMediaHandler implements ICommandHandler<
     }
 
     let deletedCount = 0;
+    const deletedUrls: string[] = [];
+
     for (const rawId of command.ids) {
       try {
         const mediaId = new MediaId(rawId);
@@ -52,6 +61,8 @@ export class BulkDeleteMediaHandler implements ICommandHandler<
           );
           continue;
         }
+
+        deletedUrls.push(asset.url);
 
         if (this.mediaCleanup) {
           await this.mediaRepository.delete(asset.id);
@@ -76,6 +87,26 @@ export class BulkDeleteMediaHandler implements ICommandHandler<
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         this.logger.error(`Error processing bulk delete for ${rawId}: ${msg}`);
+      }
+    }
+
+    // Detach all deleted media URLs from all products referencing them
+    if (this.productMediaDetacher && deletedUrls.length > 0) {
+      try {
+        const detached =
+          await this.productMediaDetacher.detachMediaUrlsFromAllProducts(
+            deletedUrls,
+          );
+        if (detached > 0) {
+          this.logger.log(
+            `Detached ${deletedUrls.length} deleted asset(s) from ${detached} product(s).`,
+          );
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `Failed to detach bulk deleted media from products: ${msg}`,
+        );
       }
     }
 

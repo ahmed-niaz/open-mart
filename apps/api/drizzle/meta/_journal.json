@@ -120,6 +120,13 @@
       "when": 1794500000000,
       "tag": "0016_pg_trgm_catalog_search",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794505000000,
+      "tag": "0017_cascade_product_deletion",
+      "breakpoints": true
     }
   ]
 }

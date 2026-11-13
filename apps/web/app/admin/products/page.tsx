@@ -502,7 +502,7 @@ export default function AdminProductsPage() {
         onClose={() => setProductToDelete(null)}
         onConfirm={handleDeleteConfirm}
         title="Delete Product"
-        description={`Are you sure you want to permanently delete "${productToDelete?.title}" (SKU: ${productToDelete?.sku})? This will remove all associated media from cloud storage and cannot be undone.`}
+        description={`Are you sure you want to permanently delete "${productToDelete?.title}" (SKU: ${productToDelete?.sku})? Product images will remain preserved in your Media Library for reuse or separate deletion.`}
         confirmLabel="Delete Permanently"
         variant="destructive"
         loading={isDeleting}

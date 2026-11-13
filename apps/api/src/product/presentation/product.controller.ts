@@ -35,9 +35,9 @@ import { ProductStatus } from '../domain/entities/product.entity.js';
 import { ListProductQueryDto } from './dto/list-product-query.dto.js';
 import { PaginatedResult } from '../../shared/application/pagination/paginated-result.js';
 import {
-  STORAGE_SERVICE,
-  type StoragePort,
-} from '../../shared/application/ports/storage.port.js';
+  PRODUCT_MEDIA_SYNC_PORT,
+  type ProductMediaSyncPort,
+} from '../application/ports/product-media-sync.port.js';
 import { PublicCache } from '../../shared/infrastructure/http/public-cache.decorator.js';
 
 @Controller('products')
@@ -47,8 +47,8 @@ export class ProductController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
-    @Inject(STORAGE_SERVICE)
-    private readonly storageService: StoragePort,
+    @Inject(PRODUCT_MEDIA_SYNC_PORT)
+    private readonly productMediaSync: ProductMediaSyncPort,
   ) {}
 
   @Post()
@@ -64,29 +64,30 @@ export class ProductController {
     let media = dto.media ?? [];
 
     if (files && files.length > 0) {
-      this.logger.log(`Uploading ${files.length} file(s) to Cloudflare R2...`);
-      const uploadedFiles = await this.storageService.uploadMany(
-        files.map((f) => ({
-          buffer: f.buffer,
-          originalName: f.originalname,
-          mimeType: f.mimetype,
-          folder: 'products',
-        })),
+      this.logger.log(
+        `Uploading and registering ${files.length} file(s) into Media Library & Cloudflare R2...`,
       );
+      const uploadedResults =
+        await this.productMediaSync.uploadAndRegisterMedia(
+          files.map((f) => ({
+            buffer: f.buffer,
+            originalName: f.originalname,
+            mimeType: f.mimetype,
+            size: f.size,
+            folder: 'products',
+            altText: dto.title,
+          })),
+        );
 
-      const uploadedMedia = uploadedFiles.map((uploaded, index) => {
-        const rawName = files[index].originalname.replace(/\.[^/.]+$/, '');
-        const cleanAltText = rawName.replace(/[-_]/g, ' ').trim();
-        return {
-          url: uploaded.url,
-          altText: cleanAltText || dto.title,
-          isThumbnail: false,
-        };
-      });
+      const uploadedMedia = uploadedResults.map((u, index) => ({
+        url: u.url,
+        altText: u.altText,
+        isThumbnail: media.length === 0 && index === 0,
+      }));
 
       media = [...media, ...uploadedMedia];
       this.logger.log(
-        `Successfully attached ${uploadedMedia.length} image(s) to product.`,
+        `Successfully attached ${uploadedMedia.length} image(s) to product and registered in Media Library.`,
       );
     }
 
@@ -109,6 +110,15 @@ export class ProductController {
         dto.variants ?? [],
       ),
     );
+
+    // Synchronize media usage in media_assets so images appear in Media Library with active usage
+    if (media.length > 0) {
+      await this.productMediaSync.syncMediaUsage(
+        media.map((m) => m.url),
+        [],
+        dto.title,
+      );
+    }
 
     return {
       success: true,
@@ -254,30 +264,43 @@ export class ProductController {
     let media = dto.media;
 
     if (files && files.length > 0) {
-      this.logger.log(`Uploading ${files.length} file(s) to Cloudflare R2...`);
-      const uploadedFiles = await this.storageService.uploadMany(
-        files.map((f) => ({
-          buffer: f.buffer,
-          originalName: f.originalname,
-          mimeType: f.mimetype,
-          folder: 'products',
-        })),
+      this.logger.log(
+        `Uploading and registering ${files.length} file(s) into Media Library & Cloudflare R2 for product '${id}'...`,
       );
+      const uploadedResults =
+        await this.productMediaSync.uploadAndRegisterMedia(
+          files.map((f) => ({
+            buffer: f.buffer,
+            originalName: f.originalname,
+            mimeType: f.mimetype,
+            size: f.size,
+            folder: 'products',
+            altText: dto.title || 'Product media',
+          })),
+        );
 
-      const uploadedMedia = uploadedFiles.map((uploaded, index) => {
-        const rawName = files[index].originalname.replace(/\.[^/.]+$/, '');
-        const cleanAltText = rawName.replace(/[-_]/g, ' ').trim();
-        return {
-          url: uploaded.url,
-          altText: cleanAltText || dto.title || 'Product media',
-          isThumbnail: false,
-        };
-      });
+      const uploadedMedia = uploadedResults.map((u) => ({
+        url: u.url,
+        altText: u.altText,
+        isThumbnail: false,
+      }));
 
       media = [...(media ?? []), ...uploadedMedia];
       this.logger.log(
-        `Successfully attached ${uploadedMedia.length} image(s) to product update.`,
+        `Successfully attached ${uploadedMedia.length} image(s) to product update and registered in Media Library.`,
       );
+    }
+
+    // Capture previous media URLs to calculate usage diff in media_assets
+    let previousUrls: string[] = [];
+    try {
+      const existingProduct = await this.queryBus.execute<
+        GetProductByIdQuery,
+        ProductResponseDto | null
+      >(new GetProductByIdQuery(id));
+      previousUrls = existingProduct?.media?.map((m) => m.url) || [];
+    } catch {
+      // Best-effort
     }
 
     await this.commandBus.execute<UpdateProductCommand, void>(
@@ -299,6 +322,14 @@ export class ProductController {
         dto.variants,
       ),
     );
+
+    if (media !== undefined) {
+      await this.productMediaSync.syncMediaUsage(
+        media.map((m) => m.url),
+        previousUrls,
+        dto.title,
+      );
+    }
 
     return {
       success: true,

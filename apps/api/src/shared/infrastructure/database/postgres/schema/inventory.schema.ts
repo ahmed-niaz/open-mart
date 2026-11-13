@@ -49,7 +49,7 @@ export const inventoryItemsSchema = pgTable(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     productId: uuid('product_id')
-      .references(() => productsSchema.id, { onDelete: 'restrict' })
+      .references(() => productsSchema.id, { onDelete: 'cascade' })
       .notNull(),
     sku: varchar('sku', { length: 100 }).notNull().unique(),
     quantityOnHand: integer('quantity_on_hand').notNull().default(0),
@@ -83,7 +83,7 @@ export const inventoryReservationsSchema = pgTable(
     orderId: uuid('order_id').notNull(),
     inventoryItemId: uuid('inventory_item_id')
       .notNull()
-      .references(() => inventoryItemsSchema.id, { onDelete: 'restrict' }),
+      .references(() => inventoryItemsSchema.id, { onDelete: 'cascade' }),
     sku: varchar('sku', { length: 100 }).notNull(),
     quantity: integer('quantity').notNull(),
     status: reservationStatusEnum('status').notNull().default('reserved'),
@@ -111,7 +111,7 @@ export const inventoryMovementsSchema = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     inventoryItemId: uuid('inventory_item_id')
       .notNull()
-      .references(() => inventoryItemsSchema.id, { onDelete: 'restrict' }),
+      .references(() => inventoryItemsSchema.id, { onDelete: 'cascade' }),
     sku: varchar('sku', { length: 100 }).notNull(),
     reason: movementReasonEnum('reason').notNull(),
     onHandDelta: integer('on_hand_delta').notNull().default(0),

@@ -4,8 +4,10 @@ import { StorageModule } from '../shared/infrastructure/storage/storage.module.j
 
 import { MEDIA_REPOSITORY } from './application/ports/media.repository.js';
 import { MEDIA_CLEANUP_PORT } from './application/ports/media-cleanup.port.js';
+import { PRODUCT_MEDIA_DETACHER_PORT } from './application/ports/product-media-detacher.port.js';
 import { DrizzleMediaRepository } from './infrastructure/adapters/drizzle-media.repository.js';
 import { BullMqMediaCleanupAdapter } from './infrastructure/queues/bullmq-media-cleanup.adapter.js';
+import { DrizzleProductMediaDetacherAdapter } from './infrastructure/adapters/drizzle-product-media-detacher.adapter.js';
 import { MediaCleanupWorkerProcessor } from './infrastructure/queues/media-cleanup-worker.processor.js';
 
 import { UploadMediaHandler } from './application/commands/upload-media/upload-media.handler.js';
@@ -44,10 +46,14 @@ const QueryHandlers = [
       provide: MEDIA_CLEANUP_PORT,
       useClass: BullMqMediaCleanupAdapter,
     },
+    {
+      provide: PRODUCT_MEDIA_DETACHER_PORT,
+      useClass: DrizzleProductMediaDetacherAdapter,
+    },
     MediaCleanupWorkerProcessor,
     ...CommandHandlers,
     ...QueryHandlers,
   ],
-  exports: [MEDIA_REPOSITORY, MEDIA_CLEANUP_PORT],
+  exports: [MEDIA_REPOSITORY, MEDIA_CLEANUP_PORT, PRODUCT_MEDIA_DETACHER_PORT],
 })
 export class MediaModule {}

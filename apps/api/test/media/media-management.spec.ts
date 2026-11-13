@@ -244,15 +244,24 @@ describe('Centralized Media Management Module', () => {
 
       mockMediaRepo.findById.mockResolvedValue(existing);
 
+      const mockDetacher = {
+        detachMediaUrlsFromAllProducts: vi.fn().mockResolvedValue(1),
+      };
+
       const handler = new DeleteMediaAssetHandler(
         mockMediaRepo as any,
         mockStorageService as any,
+        undefined,
+        mockDetacher as any,
       );
 
       await handler.execute(
         new DeleteMediaAssetCommand(existing.id.getValue(), true),
       );
 
+      expect(mockDetacher.detachMediaUrlsFromAllProducts).toHaveBeenCalledWith([
+        'https://cdn.com/in-use.jpg',
+      ]);
       expect(mockStorageService.delete).toHaveBeenCalledWith('key-in-use');
       expect(mockMediaRepo.delete).toHaveBeenCalledWith(existing.id);
     });
@@ -283,9 +292,15 @@ describe('Centralized Media Management Module', () => {
         return null;
       });
 
+      const mockDetacher = {
+        detachMediaUrlsFromAllProducts: vi.fn().mockResolvedValue(1),
+      };
+
       const handler = new BulkDeleteMediaHandler(
         mockMediaRepo as any,
         mockStorageService as any,
+        undefined,
+        mockDetacher as any,
       );
 
       const result = await handler.execute(
@@ -296,6 +311,9 @@ describe('Centralized Media Management Module', () => {
       );
 
       expect(result.deletedCount).toBe(1);
+      expect(mockDetacher.detachMediaUrlsFromAllProducts).toHaveBeenCalledWith([
+        'https://cdn.com/unused.jpg',
+      ]);
       expect(mockStorageService.delete).toHaveBeenCalledWith('key-unused');
       expect(mockStorageService.delete).not.toHaveBeenCalledWith('key-used');
     });

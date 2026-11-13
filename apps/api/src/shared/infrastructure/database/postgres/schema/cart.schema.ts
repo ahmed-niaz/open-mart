@@ -68,7 +68,7 @@ export const cartItemsSchema = pgTable(
       .references(() => cartsSchema.id, { onDelete: 'cascade' }),
     productId: uuid('product_id')
       .notNull()
-      .references(() => productsSchema.id, { onDelete: 'restrict' }),
+      .references(() => productsSchema.id, { onDelete: 'cascade' }),
     quantity: integer('quantity').notNull().default(1),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()

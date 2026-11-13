@@ -1,5 +1,5 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { and, eq, gte, lte, SQL } from 'drizzle-orm';
+import { and, eq, gte, inArray, lte, sql, SQL } from 'drizzle-orm';
 import {
   ProductFilters,
   ProductRepositoryPort,
@@ -26,6 +26,15 @@ import {
   productsSchema,
   ProductVariantPersistence,
 } from '../../../shared/infrastructure/database/postgres/schema/product.schema.js';
+import { cartItemsSchema } from '../../../shared/infrastructure/database/postgres/schema/cart.schema.js';
+import { discountTargetProductsSchema } from '../../../shared/infrastructure/database/postgres/schema/discount.schema.js';
+import {
+  inventoryItemsSchema,
+  inventoryMovementsSchema,
+  inventoryReservationsSchema,
+} from '../../../shared/infrastructure/database/postgres/schema/inventory.schema.js';
+import { orderItemsSchema } from '../../../shared/infrastructure/database/postgres/schema/order.schema.js';
+import { mediaAssetsSchema } from '../../../shared/infrastructure/database/postgres/schema/media.schema.js';
 import { CacheService } from '../../../shared/infrastructure/cache/cache.service.js';
 
 @Injectable()
@@ -179,15 +188,76 @@ export class DrizzleProductRepository implements ProductRepositoryPort {
     return rows.map((row) => DrizzleProductRepository.toDomain(row));
   }
 
-  // 6. DELETE (Permanently removes record from database)
+  // 6. DELETE (Permanently removes record from database with transactional cascade)
   async delete(id: ProductId): Promise<void> {
-    const deleted = await this.db
-      .delete(productsSchema)
-      .where(eq(productsSchema.id, id.getValue()))
-      .returning({
-        id: productsSchema.id,
-        sku: productsSchema.sku,
-      });
+    const productIdStr = id.getValue();
+
+    const deleted = await this.db.transaction(async (tx) => {
+      // 1. Remove references in cart_items and discount_target_products if they exist
+      await tx
+        .delete(cartItemsSchema)
+        .where(eq(cartItemsSchema.productId, productIdStr));
+
+      await tx
+        .delete(discountTargetProductsSchema)
+        .where(eq(discountTargetProductsSchema.productId, productIdStr));
+
+      // 2. Remove inventory records (reservations -> movements -> inventory_items)
+      const invItems = await tx
+        .select({ id: inventoryItemsSchema.id })
+        .from(inventoryItemsSchema)
+        .where(eq(inventoryItemsSchema.productId, productIdStr));
+
+      if (invItems.length > 0) {
+        const invItemIds = invItems.map((item) => item.id);
+        await tx
+          .delete(inventoryReservationsSchema)
+          .where(
+            inArray(inventoryReservationsSchema.inventoryItemId, invItemIds),
+          );
+        await tx
+          .delete(inventoryMovementsSchema)
+          .where(inArray(inventoryMovementsSchema.inventoryItemId, invItemIds));
+        await tx
+          .delete(inventoryItemsSchema)
+          .where(eq(inventoryItemsSchema.productId, productIdStr));
+      }
+
+      // 3. Historical order_items preserve frozen price snapshots; set productId to null
+      await tx
+        .update(orderItemsSchema)
+        .set({ productId: null })
+        .where(eq(orderItemsSchema.productId, productIdStr));
+
+      // 4. Delete the product itself
+      const rows = await tx
+        .delete(productsSchema)
+        .where(eq(productsSchema.id, productIdStr))
+        .returning({
+          id: productsSchema.id,
+          sku: productsSchema.sku,
+          variants: productsSchema.variants,
+          media: productsSchema.media,
+        });
+
+      // 5. Decrement usage_count for any media assets attached to this product
+      // Note: Media assets and cloud storage files remain safely in the Media Library for reuse or manual deletion
+      if (rows[0]?.media && Array.isArray(rows[0].media)) {
+        for (const item of rows[0].media) {
+          if (item?.url) {
+            await tx
+              .update(mediaAssetsSchema)
+              .set({
+                usageCount: sql`GREATEST(0, ${mediaAssetsSchema.usageCount} - 1)`,
+                updatedAt: new Date(),
+              })
+              .where(eq(mediaAssetsSchema.url, item.url));
+          }
+        }
+      }
+
+      return rows;
+    });
 
     if (deleted.length === 0) {
       throw new ApplicationException(
@@ -202,7 +272,15 @@ export class DrizzleProductRepository implements ProductRepositoryPort {
         if (deleted[0].sku) {
           await this.cacheService.del(`product:sku:${deleted[0].sku}`);
         }
+        if (deleted[0].variants && Array.isArray(deleted[0].variants)) {
+          for (const variant of deleted[0].variants) {
+            if (variant?.sku) {
+              await this.cacheService.del(`product:sku:${variant.sku}`);
+            }
+          }
+        }
         await this.cacheService.delPattern('product:list:*');
+        await this.cacheService.delPattern('category:*');
       } catch {
         // Fail-open: cache eviction errors must not fail database transaction
       }

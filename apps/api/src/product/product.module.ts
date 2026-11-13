@@ -8,9 +8,12 @@ import { ProductQueryHandlers } from './application/queries/index.js';
 
 import { CATEGORY_VERIFICATION_PORT } from './application/ports/category-verification.port.js';
 import { CategoryVerificationAdapter } from './infrastructure/adapters/category-verification.adapter.js';
+import { PRODUCT_MEDIA_SYNC_PORT } from './application/ports/product-media-sync.port.js';
+import { DrizzleProductMediaSyncAdapter } from './infrastructure/adapters/drizzle-product-media-sync.adapter.js';
+import { StorageModule } from '../shared/infrastructure/storage/storage.module.js';
 
 @Module({
-  imports: [CqrsModule],
+  imports: [CqrsModule, StorageModule],
   controllers: [ProductController],
   providers: [
     {
@@ -21,9 +24,13 @@ import { CategoryVerificationAdapter } from './infrastructure/adapters/category-
       provide: CATEGORY_VERIFICATION_PORT,
       useClass: CategoryVerificationAdapter,
     },
+    {
+      provide: PRODUCT_MEDIA_SYNC_PORT,
+      useClass: DrizzleProductMediaSyncAdapter,
+    },
     ...ProductCommandHandlers,
     ...ProductQueryHandlers,
   ],
-  exports: [PRODUCT_REPOSITORY],
+  exports: [PRODUCT_REPOSITORY, PRODUCT_MEDIA_SYNC_PORT],
 })
 export class ProductModule {}
