@@ -309,19 +309,15 @@ export function StorefrontHamburgerDrawer({
 
         {/* Drawer Brand Footer */}
         <div className="flex items-center justify-between border-t border-[#E5E0D5] bg-[#F4F2EE] px-6 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <div className="relative h-7 w-7 overflow-hidden rounded border border-[#E5E0D5] bg-white">
+          <div className="flex items-center gap-2">
+            <div className="relative h-7 w-[105px]">
               <Image
-                src="/logo.jpg"
+                src="/colorfull-logo.webp"
                 alt="OpenMart"
                 fill
-                sizes="28px"
-                className="object-cover"
+                className="object-contain object-left"
               />
             </div>
-            <span className="text-sm font-semibold text-[#163A2B]">
-              OpenMart Storefront
-            </span>
           </div>
           <span className="text-xs font-medium text-[#6B756D]">
             {departments.length}{' '}

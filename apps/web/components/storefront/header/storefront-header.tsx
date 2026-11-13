@@ -104,29 +104,21 @@ export function StorefrontHeader({
             <StorefrontHamburgerDrawer compactMobileTrigger />
           </div>
 
-          {/* Brand Logo + Wordmark */}
+          {/* Brand Logo */}
           <Link
             href="/"
             aria-label="OpenMart Home"
-            className="flex shrink-0 items-center gap-2.5 rounded-sm border border-transparent px-2 py-1 transition-colors hover:border-[#E8DFD0]/60 hover:bg-[#214D3A]/60"
+            className="flex shrink-0 items-center rounded-sm border border-transparent px-1.5 py-1 transition-colors hover:border-[#E8DFD0]/60 hover:bg-[#214D3A]/60"
           >
-            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-white ring-1 ring-[#E8DFD0]/40">
+            <div className="relative h-9 w-[130px] sm:h-10 sm:w-[145px] md:h-11 md:w-[165px]">
               <Image
-                src="/logo.jpg"
-                alt="OpenMart Logo"
+                src="/logo.png"
+                alt="OpenMart"
                 fill
-                sizes="40px"
                 priority
-                className="object-cover"
+                sizes="(max-width: 640px) 130px, (max-width: 768px) 145px, 165px"
+                className="object-contain object-left"
               />
-            </div>
-            <div className="flex flex-col leading-none">
-              <span className="text-lg font-bold tracking-tight text-white sm:text-xl">
-                OpenMart
-              </span>
-              <span className="mt-0.5 text-[11px] font-medium tracking-wider text-[#E8DFD0]/85 uppercase">
-                Storefront
-              </span>
             </div>
           </Link>
 
@@ -350,10 +342,10 @@ export function StorefrontHeader({
         </div>
       </div>
 
-      {/* TIER 2: Secondary Department Navigation Bar (#122E22) */}
+      {/* TIER 2: Secondary Department Navigation Bar (#122E22) - Hidden on Mobile */}
       <nav
         aria-label="Store departments"
-        className="border-t border-[#214D3A]/70 bg-[#122E22] text-[#FAF7F0]"
+        className="hidden md:block border-t border-[#214D3A]/70 bg-[#122E22] text-[#FAF7F0]"
       >
         <div className="mx-auto flex max-w-[1900px] items-center gap-1.5 overflow-x-auto px-3 py-1.5 sm:px-4">
           {/* Desktop "All" Hamburger Drawer Trigger */}
